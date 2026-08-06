@@ -1,1 +1,5 @@
 data/*.csv
+results/*.csv
+results/*.npz
+__pycache__/
+*.pyc

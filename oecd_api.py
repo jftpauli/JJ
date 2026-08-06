@@ -9,20 +9,23 @@ country-month, it raises.
 
 Panels written to data/:
 
-  OECD_cpi_index_monthly_panel.csv  CPI, all items, index, not seasonally adj.
-  OECD_cpi_yoy_monthly_panel.csv    CPI, all items, % change on a year earlier
-  OECD_ipi_monthly_panel.csv        Industrial production, index, cal. + seas. adj.
+  OECD_cpi_index_monthly_panel.csv   CPI, all items, index, not seasonally adj.
+  OECD_cpi_yoy_monthly_panel.csv     CPI, all items, % change on a year earlier
+  OECD_ipi_monthly_panel.csv         Industrial production, index, cal. + s.a.
+  OECD_ipi_growth_monthly_panel.csv  Industrial production, monthly % (dlog)
 
-The CPI *index* is the primitive - inflation at any horizon can be derived from
-it, but the level cannot be recovered from a growth rate, so the index is what
-downstream work should build on. The year-on-year panel is kept because it is
-the figure the OECD publishes and is convenient for plotting.
+Both variables are written twice: once as the *index* and once as the growth
+rate the forecasting work actually consumes. The growth panels are ready to
+model as they stand, so nothing downstream has to transform anything; the index
+panels stay because a level cannot be recovered from a growth rate, and they
+are what any later change of transformation has to start from.
 """
 
 import io
 import os
 from datetime import date
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -42,6 +45,11 @@ START_DATE = "1990-01"
 END_DATE = "2025-12"
 
 OUTPUT_FOLDER = "data"
+
+OUTPUT_FILE_CPI_INDEX = "OECD_cpi_index_monthly_panel.csv"
+OUTPUT_FILE_CPI_YOY = "OECD_cpi_yoy_monthly_panel.csv"
+OUTPUT_FILE_IPI = "OECD_ipi_monthly_panel.csv"
+OUTPUT_FILE_IPI_GROWTH = "OECD_ipi_growth_monthly_panel.csv"
 
 REQUEST_TIMEOUT = 180
 
@@ -88,21 +96,21 @@ SERIES = [
         "flow": CPI_FLOW,
         "key": CPI_INDEX_KEY,
         "filter": {},
-        "file": "OECD_cpi_index_monthly_panel.csv"
+        "file": OUTPUT_FILE_CPI_INDEX
     },
     {
         "name": "CPI year-on-year (%)",
         "flow": CPI_FLOW,
         "key": CPI_YOY_KEY,
         "filter": {},
-        "file": "OECD_cpi_yoy_monthly_panel.csv"
+        "file": OUTPUT_FILE_CPI_YOY
     },
     {
         "name": "Industrial production index (BTE, cal. + seas. adj.)",
         "flow": IPI_FLOW,
         "key": IPI_KEY,
         "filter": IPI_FILTER,
-        "file": "OECD_ipi_monthly_panel.csv"
+        "file": OUTPUT_FILE_IPI
     }
 ]
 
@@ -178,8 +186,11 @@ def fetch(flow, key, selection):
 def report(panel, name):
     """Print the coverage facts worth knowing before the data is used."""
 
+    # Gaps are counted inside the panel's own span. A derived series starts one
+    # period late by construction, which is not a hole - the span line below
+    # already makes the start date visible.
     expected = pd.date_range(
-        start=f"{START_DATE}-01",
+        start=panel.index.min(),
         end=panel.index.max(),
         freq="MS"
     )
@@ -206,6 +217,8 @@ os.makedirs(
     exist_ok=True
 )
 
+panels = {}
+
 for spec in SERIES:
 
     print(f"\nFetching {spec['name']} ...")
@@ -224,8 +237,38 @@ for spec in SERIES:
     )
 
     panel.to_csv(output_path)
+    panels[spec["file"]] = panel
 
     print("  saved     :", output_path)
+
+
+# ======================================================
+# DERIVED SERIES
+# ======================================================
+#
+# Industrial production as a monthly growth rate, so downstream work never has
+# to transform it. Derived from the index above rather than fetched separately,
+# which guarantees the two are internally consistent and pins the definition
+# (log difference, not a simple percentage change - log differences are
+# additive across periods and symmetric in sign, which is what a forecasting
+# target should be).
+#
+# The index panel is kept as well. A level cannot be recovered from a growth
+# rate, so the index stays the primitive, exactly as the CPI index does.
+
+print("\nDeriving Industrial production growth ...")
+
+ipi_growth = 100.0 * np.log(panels[OUTPUT_FILE_IPI]).diff()
+
+# The first month is structurally NaN (no prior period to difference against).
+ipi_growth = ipi_growth.iloc[1:]
+
+report(ipi_growth, "Industrial production growth (100 * dlog, monthly %)")
+
+growth_path = os.path.join(OUTPUT_FOLDER, OUTPUT_FILE_IPI_GROWTH)
+ipi_growth.to_csv(growth_path)
+
+print("  saved     :", growth_path)
 
 
 print(f"\nFinished. Vintage: {date.today():%Y-%m-%d} "

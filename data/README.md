@@ -9,14 +9,31 @@ files with the current vintage — record the date alongside any estimates.
 
 ## Files
 
-| File | Series | Unit |
-|---|---|---|
-| `OECD_cpi_index_monthly_panel.csv` | CPI, all items | index |
-| `OECD_cpi_yoy_monthly_panel.csv` | CPI, all items | % change on same month a year earlier |
-| `OECD_ipi_monthly_panel.csv` | Industrial production, industry except construction | index |
+| File | Series | Unit | Fetched or derived |
+|---|---|---|---|
+| `OECD_cpi_index_monthly_panel.csv` | CPI, all items | index | fetched |
+| `OECD_cpi_yoy_monthly_panel.csv` | CPI, all items | % change on same month a year earlier | fetched |
+| `OECD_ipi_monthly_panel.csv` | Industrial production, industry except construction | index | fetched |
+| `OECD_ipi_growth_monthly_panel.csv` | Industrial production, industry except construction | monthly %, `100 × Δlog` | derived |
 
 Layout: `TIME_PERIOD` (month start, `YYYY-MM-01`) in column 1, then one column
 per country in ISO-3 code (`DEU`, `FRA`, `GBR`, `USA`).
+
+**The two `_yoy_` / `_growth_` panels are the model-ready ones.** They are
+already stationary transforms, so forecasting code loads them as they stand and
+performs no transformation of its own — there is exactly one definition of each
+target, and it lives in `oecd_api.py`.
+
+The index panels are kept because a level cannot be recovered from a growth
+rate. They are the primitive any later change of transformation starts from.
+
+`OECD_ipi_growth_monthly_panel.csv` is derived from the index in the same run
+rather than fetched separately, which guarantees the two are internally
+consistent. The log difference is used rather than a simple percentage change:
+log differences are additive across periods and symmetric in sign, which is what
+a forecasting target should be. It starts 1990-02 (431 months) — one month
+shorter than the index, since the first period has nothing to difference
+against.
 
 ## Series keys
 
