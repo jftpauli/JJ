@@ -27,6 +27,7 @@ Marginal calibration - Gneiting, Balabdaoui & Raftery (2007).
 """
 
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,64 +36,29 @@ import pandas as pd
 # Paths are anchored to the repository root rather than the working directory,
 # so the script runs the same from anywhere.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from style import (  # noqa: E402
+    BASELINE,
+    INK_MUTED,
+    INK_PRIMARY,
+    INK_SECONDARY,
+    SURFACE,
+    apply_rcparams,
+    model_colors,
+    model_label,
+    style_axes,
+    target_label,
+)
 
 RESULTS_FOLDER = os.path.join(ROOT, "results")
 FIGURE_FOLDER = os.path.join(ROOT, "figures")
 
 HORIZON = 1
 
-MODEL_LABELS = {
-    "historical_20y": "Historical quantiles",
-    "qar": "Quantile AR"
-}
-
-TARGET_LABELS = {
-    "cpi_yoy": "CPI inflation, year-on-year (%)",
-    "ipi_growth": "Industrial production, monthly growth (%)"
-}
-
-MODEL_COLORS = {
-    "historical_20y": "#2a78d6",
-    "qar": "#eb6834"
-}
-
-SURFACE = "#fcfcfb"
-INK_PRIMARY = "#0b0b0b"
-INK_SECONDARY = "#52514e"
-INK_MUTED = "#898781"
-GRIDLINE = "#e1e0d9"
-BASELINE = "#c3c2b7"
-
 N_BINS = 20
 
-plt.rcParams.update({
-    "font.family": "sans-serif",
-    "font.sans-serif": ["DejaVu Sans"],
-    "figure.facecolor": SURFACE,
-    "axes.facecolor": SURFACE,
-    "savefig.facecolor": SURFACE,
-    "text.color": INK_PRIMARY,
-    "axes.labelcolor": INK_SECONDARY,
-    "xtick.color": INK_MUTED,
-    "ytick.color": INK_MUTED,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "axes.titlesize": 11,
-    "axes.labelsize": 10
-})
-
-
-def style_axes(ax):
-
-    ax.grid(axis="y", color=GRIDLINE, linewidth=0.8)
-    ax.set_axisbelow(True)
-
-    for side in ["top", "right"]:
-        ax.spines[side].set_visible(False)
-
-    for side in ["left", "bottom"]:
-        ax.spines[side].set_color(BASELINE)
-        ax.spines[side].set_linewidth(0.8)
+apply_rcparams(tick_size=9)
 
 
 def load():
@@ -107,6 +73,28 @@ def load():
     )
 
     return scores, bundle["predictions"], bundle["quantile_levels"]
+
+
+def models_by_target(scores):
+    """Which models were scored on each target, in a fixed display order.
+
+    Read off the results rather than hardcoded: the model set is per-target
+    (see TARGETS in run_benchmarks.py), so a target that does not run the
+    foundation model must not get an empty panel drawn for it.
+
+    Ordered climatology first, then the estimated benchmark, then anything
+    else, so the reference a reader compares against is always the left panel.
+    """
+
+    priority = {"historical_20y": 0, "qar": 1}
+
+    return {
+        target: sorted(
+            group.model.unique(),
+            key=lambda name: (priority.get(name, 2), name)
+        )
+        for target, group in scores.groupby("target")
+    }
 
 
 # ======================================================
@@ -139,16 +127,29 @@ def pit_histogram(pit_values, levels):
 
 def plot_pit(scores, levels):
 
-    targets = sorted(scores.target.unique())
-    models = ["historical_20y", "qar"]
+    by_target = models_by_target(scores)
+    targets = sorted(by_target)
+    colors = model_colors(sorted({m for ms in by_target.values() for m in ms}))
+
+    # The grid is as wide as the busiest target. Targets running fewer models
+    # leave empty cells, which are removed rather than left as blank boxes a
+    # reader would take for a missing result.
+    n_columns = max(len(ms) for ms in by_target.values())
 
     fig, axes = plt.subplots(
-        len(targets), len(models),
-        figsize=(11, 7),
-        sharey="row"
+        len(targets), n_columns,
+        figsize=(5.5 * n_columns, 3.5 * len(targets)),
+        sharey="row",
+        squeeze=False
     )
 
     for row, target in enumerate(targets):
+
+        models = by_target[target]
+
+        for ax in axes[row, len(models):]:
+            ax.remove()
+
         for col, model in enumerate(models):
 
             ax = axes[row, col]
@@ -168,7 +169,7 @@ def plot_pit(scores, levels):
                 share,
                 width=np.diff(edges),
                 align="edge",
-                color=MODEL_COLORS[model],
+                color=colors[model],
                 edgecolor=SURFACE,
                 linewidth=1.0
             )
@@ -186,7 +187,7 @@ def plot_pit(scores, levels):
             )
 
             ax.set_title(
-                f"{TARGET_LABELS[target]}\n{MODEL_LABELS[model]}",
+                f"{target_label(target)}\n{model_label(model)}",
                 loc="left", color=INK_PRIMARY, fontweight="bold", pad=8
             )
 
@@ -254,47 +255,54 @@ def marginal_calibration(predictions, levels, actuals, grid):
 
 def plot_marginal_calibration(scores, predictions, levels):
 
-    targets = sorted(scores.target.unique())
+    by_target = models_by_target(scores)
+    targets = sorted(by_target)
+    colors = model_colors(sorted({m for ms in by_target.values() for m in ms}))
 
     # Delta is a probability difference in both panels, so a shared y-axis is
     # meaningful here and stops the better-calibrated target from being read
     # as equally bad on a zoomed-in scale of its own.
-    fig, axes = plt.subplots(1, len(targets), figsize=(11, 4.6), sharey=True)
+    fig, axes = plt.subplots(
+        1, len(targets), figsize=(5.5 * len(targets), 4.6),
+        sharey=True, squeeze=False
+    )
 
     for col, target in enumerate(targets):
 
-        ax = axes[col]
+        ax = axes[0, col]
 
-        for model in ["historical_20y", "qar"]:
+        # One x grid per target, from every realisation scored at this horizon.
+        # Deriving it per model would put the curves on slightly different
+        # grids wherever the models were scored on different origin counts.
+        at_horizon = (
+            (scores.target == target) & (scores.horizon == HORIZON)
+        ).to_numpy()
 
-            mask = (
-                (scores.target == target)
-                & (scores.model == model)
-                & (scores.horizon == HORIZON)
-            ).to_numpy()
+        grid = np.linspace(
+            np.percentile(scores.actual.to_numpy()[at_horizon], 0.5),
+            np.percentile(scores.actual.to_numpy()[at_horizon], 99.5),
+            160
+        )
 
-            actuals = scores.actual.to_numpy()[mask]
-            preds = predictions[mask]
+        for model in by_target[target]:
 
-            grid = np.linspace(
-                np.percentile(actuals, 0.5),
-                np.percentile(actuals, 99.5),
-                160
+            mask = at_horizon & (scores.model == model).to_numpy()
+
+            delta = marginal_calibration(
+                predictions[mask], levels, scores.actual.to_numpy()[mask], grid
             )
-
-            delta = marginal_calibration(preds, levels, actuals, grid)
 
             ax.plot(
                 grid, delta,
-                color=MODEL_COLORS[model],
+                color=colors[model],
                 linewidth=1.8,
-                label=MODEL_LABELS[model]
+                label=model_label(model)
             )
 
         ax.axhline(0.0, color=BASELINE, linewidth=1.2, zorder=1)
 
         ax.set_title(
-            TARGET_LABELS[target],
+            target_label(target),
             loc="left", color=INK_PRIMARY, fontweight="bold", pad=8
         )
 

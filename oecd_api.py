@@ -1,24 +1,29 @@
-"""Build monthly CPI and industrial-production panels from the OECD SDMX API.
+"""Build CPI and real GDP panels from the OECD SDMX API.
 
 Every series key below is fully specified - no wildcard positions. A wildcard
-returns several economic activities and adjustment modes at once, and collapsing
-that with pivot_table(aggfunc="first") silently picks an arbitrary one per
-country (and, worse, a different one in different months). The fetch here
-refuses to guess: if a key does not resolve to exactly one observation per
-country-month, it raises.
+can return several activities, price bases and adjustment modes at once, and
+collapsing that with pivot_table(aggfunc="first") silently picks an arbitrary
+one per country (and, worse, a different one in different periods). The fetch
+here refuses to guess: if a key does not resolve to exactly one observation per
+country-period, it raises.
 
 Panels written to data/:
 
-  OECD_cpi_index_monthly_panel.csv   CPI, all items, index, not seasonally adj.
-  OECD_cpi_yoy_monthly_panel.csv     CPI, all items, % change on a year earlier
-  OECD_ipi_monthly_panel.csv         Industrial production, index, cal. + s.a.
-  OECD_ipi_growth_monthly_panel.csv  Industrial production, monthly % (dlog)
+  OECD_cpi_index_monthly_panel.csv     CPI, all items, index, not seas. adj.
+  OECD_cpi_yoy_monthly_panel.csv       CPI, all items, % change on a year earlier
+  OECD_gdp_quarterly_panel.csv         Real GDP, chain-linked volume, seas. adj.
+  OECD_gdp_growth_quarterly_panel.csv  Real GDP, quarter-on-quarter % (dlog)
 
-Both variables are written twice: once as the *index* and once as the growth
-rate the forecasting work actually consumes. The growth panels are ready to
-model as they stand, so nothing downstream has to transform anything; the index
-panels stay because a level cannot be recovered from a growth rate, and they
-are what any later change of transformation has to start from.
+The two variables run at *different frequencies* - CPI monthly, GDP quarterly -
+so a forecast horizon h means months for one and quarters for the other.
+Anything consuming these panels has to carry that distinction; run_benchmarks.py
+does so through a per-target frequency setting.
+
+Each variable is written twice: once as the level and once as the growth rate
+the forecasting work actually consumes. The growth panels are ready to model as
+they stand, so nothing downstream has to transform anything; the level panels
+stay because a level cannot be recovered from a growth rate, and they are what
+any later change of transformation has to start from.
 """
 
 import io
@@ -48,8 +53,8 @@ OUTPUT_FOLDER = "data"
 
 OUTPUT_FILE_CPI_INDEX = "OECD_cpi_index_monthly_panel.csv"
 OUTPUT_FILE_CPI_YOY = "OECD_cpi_yoy_monthly_panel.csv"
-OUTPUT_FILE_IPI = "OECD_ipi_monthly_panel.csv"
-OUTPUT_FILE_IPI_GROWTH = "OECD_ipi_growth_monthly_panel.csv"
+OUTPUT_FILE_GDP = "OECD_gdp_quarterly_panel.csv"
+OUTPUT_FILE_GDP_GROWTH = "OECD_gdp_growth_quarterly_panel.csv"
 
 REQUEST_TIMEOUT = 180
 
@@ -58,11 +63,11 @@ REQUEST_TIMEOUT = 180
 # SERIES DEFINITIONS
 # ======================================================
 #
-# CPI key    : REF_AREA.FREQ.METHODOLOGY.MEASURE.UNIT_MEASURE.EXPENDITURE.
-#              ADJUSTMENT.TRANSFORMATION
-# IPI key    : REF_AREA.FREQ.MEASURE + wildcards, filtered explicitly below
-#              (the dataflow's dimension order is not stable enough to pin
-#              positionally, so the slice is selected on named columns).
+# CPI key : REF_AREA.FREQ.METHODOLOGY.MEASURE.UNIT_MEASURE.EXPENDITURE.
+#           ADJUSTMENT.TRANSFORMATION
+# GDP key : FREQ.ADJUSTMENT.REF_AREA.SECTOR.COUNTERPART_SECTOR.TRANSACTION.
+#           INSTR_ASSET.ACTIVITY.EXPENDITURE.UNIT_MEASURE.PRICE_BASE.
+#           TRANSFORMATION.TABLE_IDENTIFIER   (13 positions)
 #
 # Choices and why:
 #   * National CPI methodology (N), not HICP - HICP does not cover the US, so
@@ -71,24 +76,20 @@ REQUEST_TIMEOUT = 180
 #     published for the UK, so NSA is the only consistent choice. Seasonally
 #     adjust downstream if the application needs it.
 #   * All items (_T) - the headline basket.
-#   * Industry except construction (BTE) - the standard industrial-production
-#     aggregate and the usual monthly output proxy. Construction is excluded
-#     because it is driven by a different cycle and is not covered uniformly.
-#   * Calendar and seasonally adjusted (Y) for IPI - the published form; the
-#     unadjusted series is dominated by trading-day and seasonal effects.
+#   * GDP as B1GQ at chain-linked volumes (PRICE_BASE = L), i.e. *real* GDP.
+#     Nominal GDP (V) would fold inflation into the output target and overlap
+#     with the CPI series.
+#   * Seasonally adjusted (ADJUSTMENT = Y) - the published form, and the only
+#     one where a quarter-on-quarter growth rate is meaningful.
+#   * National currency (XDC). The base year differs across countries, which
+#     does not matter because the modelling target is a growth rate.
 
 CPI_FLOW = "OECD.SDD.TPS,DSD_PRICES@DF_PRICES_ALL,"
-IPI_FLOW = "OECD.SDD.STES,DSD_STES@DF_INDSERV,"
+GDP_FLOW = "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,"
 
 CPI_INDEX_KEY = "{countries}.M.N.CPI.IX._T.N._Z"
 CPI_YOY_KEY = "{countries}.M.N.CPI.PA._T.N.GY"
-IPI_KEY = "{countries}.M.PRVM......"
-
-IPI_FILTER = {
-    "ACTIVITY": "BTE",       # Industry except construction
-    "ADJUSTMENT": "Y",       # Calendar and seasonally adjusted
-    "UNIT_MEASURE": "IX"     # Index
-}
+GDP_KEY = "Q.Y.{countries}...B1GQ....XDC.L.."
 
 SERIES = [
     {
@@ -96,21 +97,24 @@ SERIES = [
         "flow": CPI_FLOW,
         "key": CPI_INDEX_KEY,
         "filter": {},
-        "file": OUTPUT_FILE_CPI_INDEX
+        "file": OUTPUT_FILE_CPI_INDEX,
+        "freq": "M"
     },
     {
         "name": "CPI year-on-year (%)",
         "flow": CPI_FLOW,
         "key": CPI_YOY_KEY,
         "filter": {},
-        "file": OUTPUT_FILE_CPI_YOY
+        "file": OUTPUT_FILE_CPI_YOY,
+        "freq": "M"
     },
     {
-        "name": "Industrial production index (BTE, cal. + seas. adj.)",
-        "flow": IPI_FLOW,
-        "key": IPI_KEY,
-        "filter": IPI_FILTER,
-        "file": OUTPUT_FILE_IPI
+        "name": "Real GDP, quarterly (B1GQ, chain-linked volume, seas. adj.)",
+        "flow": GDP_FLOW,
+        "key": GDP_KEY,
+        "filter": {},
+        "file": OUTPUT_FILE_GDP,
+        "freq": "Q"
     }
 ]
 
@@ -119,19 +123,48 @@ SERIES = [
 # FETCH
 # ======================================================
 
-def fetch(flow, key, selection):
+def period_bounds(freq):
+    """SDMX period strings for the configured span, in the flow's frequency."""
+
+    if freq == "M":
+        return START_DATE, END_DATE
+
+    if freq == "Q":
+        start = pd.Period(START_DATE, freq="M").asfreq("Q", how="start")
+        end = pd.Period(END_DATE, freq="M").asfreq("Q", how="end")
+        return f"{start.year}-Q{start.quarter}", f"{end.year}-Q{end.quarter}"
+
+    raise ValueError(f"unsupported frequency: {freq}")
+
+
+def parse_periods(index, freq):
+    """Turn SDMX period labels into timestamps at the start of each period.
+
+    Quarterly labels look like '1990-Q1', which pd.to_datetime does not accept;
+    they have to go through PeriodIndex.
+    """
+
+    if freq == "Q":
+        return pd.PeriodIndex(index, freq="Q").to_timestamp(how="start")
+
+    return pd.to_datetime(index)
+
+
+def fetch(flow, key, selection, freq="M"):
     """Download one slice and pivot it to a country panel.
 
-    Raises if the requested slice is not unique per country-month - an
+    Raises if the requested slice is not unique per country-period - an
     ambiguous key must never be resolved by silently taking the first row.
     """
+
+    start, end = period_bounds(freq)
 
     url = (
         "https://sdmx.oecd.org/public/rest/data/"
         f"{flow}/"
         f"{key.format(countries='+'.join(COUNTRIES))}?"
-        f"startPeriod={START_DATE}"
-        f"&endPeriod={END_DATE}"
+        f"startPeriod={start}"
+        f"&endPeriod={end}"
         "&format=csvfilewithlabels"
     )
 
@@ -143,7 +176,8 @@ def fetch(flow, key, selection):
     response.raise_for_status()
 
     df = pd.read_csv(
-        io.StringIO(response.text)
+        io.StringIO(response.text),
+        low_memory=False
     )
 
     for column, value in selection.items():
@@ -168,7 +202,7 @@ def fetch(flow, key, selection):
         values="OBS_VALUE"
     )
 
-    panel.index = pd.to_datetime(panel.index)
+    panel.index = parse_periods(panel.index, freq)
     panel = panel.sort_index()
 
     # Stable column order, and a hard check that every country came back.
@@ -183,7 +217,7 @@ def fetch(flow, key, selection):
     return panel
 
 
-def report(panel, name):
+def report(panel, name, freq="M"):
     """Print the coverage facts worth knowing before the data is used."""
 
     # Gaps are counted inside the panel's own span. A derived series starts one
@@ -192,14 +226,14 @@ def report(panel, name):
     expected = pd.date_range(
         start=panel.index.min(),
         end=panel.index.max(),
-        freq="MS"
+        freq={"M": "MS", "Q": "QS"}[freq]
     )
 
     gaps = expected.difference(panel.index)
 
     print(f"\n{name}")
     print(f"  span      : {panel.index.min():%Y-%m} to {panel.index.max():%Y-%m}"
-          f"  ({len(panel)} months)")
+          f"  ({len(panel)} periods)")
     print(f"  gaps      : {len(gaps)} missing months")
     print(f"  missing   : {panel.isna().sum().to_dict()}")
     print(f"  last obs  : {panel.ffill().iloc[-1].round(2).to_dict()}")
@@ -226,10 +260,11 @@ for spec in SERIES:
     panel = fetch(
         spec["flow"],
         spec["key"],
-        spec["filter"]
+        spec["filter"],
+        spec["freq"]
     )
 
-    report(panel, spec["name"])
+    report(panel, spec["name"], spec["freq"])
 
     output_path = os.path.join(
         OUTPUT_FOLDER,
@@ -246,27 +281,31 @@ for spec in SERIES:
 # DERIVED SERIES
 # ======================================================
 #
-# Industrial production as a monthly growth rate, so downstream work never has
-# to transform it. Derived from the index above rather than fetched separately,
+# Real GDP as a quarter-on-quarter growth rate, so downstream work never has to
+# transform it. Derived from the level above rather than fetched separately,
 # which guarantees the two are internally consistent and pins the definition
 # (log difference, not a simple percentage change - log differences are
 # additive across periods and symmetric in sign, which is what a forecasting
 # target should be).
 #
-# The index panel is kept as well. A level cannot be recovered from a growth
-# rate, so the index stays the primitive, exactly as the CPI index does.
+# The level panel is kept as well. A level cannot be recovered from a growth
+# rate, so it stays the primitive, exactly as the CPI index does.
 
-print("\nDeriving Industrial production growth ...")
+print("\nDeriving real GDP growth ...")
 
-ipi_growth = 100.0 * np.log(panels[OUTPUT_FILE_IPI]).diff()
+gdp_growth = 100.0 * np.log(panels[OUTPUT_FILE_GDP]).diff()
 
-# The first month is structurally NaN (no prior period to difference against).
-ipi_growth = ipi_growth.iloc[1:]
+# The first quarter is structurally NaN (nothing to difference against).
+gdp_growth = gdp_growth.iloc[1:]
 
-report(ipi_growth, "Industrial production growth (100 * dlog, monthly %)")
+report(
+    gdp_growth,
+    "Real GDP growth (100 * dlog, quarter on quarter %)",
+    "Q"
+)
 
-growth_path = os.path.join(OUTPUT_FOLDER, OUTPUT_FILE_IPI_GROWTH)
-ipi_growth.to_csv(growth_path)
+growth_path = os.path.join(OUTPUT_FOLDER, OUTPUT_FILE_GDP_GROWTH)
+gdp_growth.to_csv(growth_path)
 
 print("  saved     :", growth_path)
 

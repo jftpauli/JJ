@@ -6,7 +6,7 @@ from scipy import stats
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models import HistoricalQuantiles, QuantileAR, DEFAULT_QUANTILES
+from models import Chronos2, HistoricalQuantiles, QuantileAR, DEFAULT_QUANTILES
 from models.base import direct_design, prediction_row, seasonal_dummies
 
 rng = np.random.default_rng(0)
@@ -143,6 +143,56 @@ except ValueError as err:
 # not a problem for it - it must still produce a forecast.
 out = HistoricalQuantiles().fit(tail_nan).predict_quantiles(1)
 check("HistoricalQuantiles unaffected by NaN at the origin", np.isfinite(out).all())
+
+print("\n[10] Chronos2 obeys the same contract")
+# Skipped rather than failed when the weights are not available: the rest of
+# the suite must still run on a machine that has never downloaded them, and a
+# missing checkpoint is an environment fact, not a defect in this code.
+try:
+    chronos = Chronos2(quantiles=DEFAULT_QUANTILES).fit(data)
+except Exception as err:  # noqa: BLE001 - any load failure means "not available"
+    print(f"  SKIP  Chronos-2 weights unavailable ({type(err).__name__}: {err})")
+else:
+    out = chronos.predict_quantiles(12)
+    check(f"shape (12, {len(DEFAULT_QUANTILES)})",
+          out.shape == (12, len(DEFAULT_QUANTILES)), str(out.shape))
+    check("finite", np.isfinite(out).all())
+    check("non-decreasing across quantiles",
+          np.all(np.diff(out, axis=1) >= -1e-9))
+
+    # No sampling anywhere in the forward pass, so two calls on the same
+    # history must agree exactly. If this ever fails, every score in the
+    # backtest becomes irreproducible.
+    check("deterministic across calls",
+          np.array_equal(out, chronos.predict_quantiles(12)))
+
+    # Fitted on a short prefix, predicted from a longer history: the forecast
+    # must move with the history, since there is no fitted state to fall back
+    # on. This is the property the rolling-origin backtest relies on.
+    short = Chronos2(quantiles=DEFAULT_QUANTILES).fit(data[:150])
+    check("recomputes from a later origin",
+          not np.allclose(
+              short.predict_quantiles(1),
+              short.predict_quantiles(1, history=data)
+          ))
+    check("later origin matches a fresh fit on the same history",
+          np.allclose(
+              short.predict_quantiles(1, history=data),
+              chronos.predict_quantiles(1)
+          ))
+
+    # Unlike QuantileAR, the foundation model handles a NaN at the origin
+    # natively - it is a documented capability, and run_benchmarks.py relies
+    # on it not raising.
+    out = chronos.predict_quantiles(1, history=tail_nan)
+    check("tolerates NaN at the forecast origin", np.isfinite(out).all())
+
+    # Too short a history is refused rather than answered from four points.
+    try:
+        Chronos2(min_observations=20).fit(data[:5])
+        check("raises on too short a history", False)
+    except ValueError:
+        check("raises on too short a history", True)
 
 print("\n" + ("ALL CHECKS PASSED" if ok else "SOME CHECKS FAILED"))
 sys.exit(0 if ok else 1)

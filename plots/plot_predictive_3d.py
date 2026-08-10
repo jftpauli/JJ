@@ -18,6 +18,7 @@ detail in the tails.
 """
 
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,6 +30,19 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers the projection
 # Paths are anchored to the repository root rather than the working directory,
 # so the script runs the same from anywhere.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from style import (  # noqa: E402
+    COUNTRY_LABELS,
+    INK_MUTED,
+    INK_PRIMARY,
+    REALISED,
+    SURFACE,
+    TIME_RAMP,
+    apply_rcparams,
+    model_label,
+    target_label,
+)
 
 RESULTS_FOLDER = os.path.join(ROOT, "results")
 FIGURE_FOLDER = os.path.join(ROOT, "figures")
@@ -43,46 +57,15 @@ START = "2016-01-01"
 END = "2025-12-01"
 EVERY = 3               # keep every n-th origin, so the ridges stay separable
 
-MODELS = ["historical_20y", "qar"]
+# None draws every model scored on this target, in the order below; set an
+# explicit list to draw a subset. The ridges stay readable up to three panels.
+MODELS = None
 
-MODEL_LABELS = {
-    "historical_20y": "Historical quantiles",
-    "qar": "Quantile AR"
-}
-
-TARGET_LABELS = {
-    "cpi_yoy": "CPI inflation, year-on-year (%)",
-    "ipi_growth": "Industrial production, monthly growth (%)"
-}
-
-COUNTRY_LABELS = {
-    "DEU": "Germany", "FRA": "France",
-    "GBR": "United Kingdom", "USA": "United States"
-}
-
-# Sequential blue ramp: time runs light -> dark.
-TIME_RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#2a78d6",
-             "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"]
-
-REALISED = "#eb6834"
-
-SURFACE = "#fcfcfb"
-INK_PRIMARY = "#0b0b0b"
-INK_SECONDARY = "#52514e"
-INK_MUTED = "#898781"
+MODEL_ORDER = {"historical_20y": 0, "qar": 1, "chronos2": 2}
 
 N_GRID = 220
 
-plt.rcParams.update({
-    "font.family": "sans-serif",
-    "font.sans-serif": ["DejaVu Sans"],
-    "figure.facecolor": SURFACE,
-    "savefig.facecolor": SURFACE,
-    "text.color": INK_PRIMARY,
-    "axes.labelcolor": INK_SECONDARY,
-    "xtick.labelsize": 8,
-    "ytick.labelsize": 8
-})
+apply_rcparams(tick_size=8)
 
 
 def ramp_color(fraction):
@@ -118,6 +101,24 @@ def density_from_quantiles(values, levels, grid, smoothing=2.5):
     density = np.gradient(cdf, grid)
 
     return np.clip(density, 0.0, None)
+
+
+def models_on_target():
+    """Models scored on the configured target, climatology-first.
+
+    Read off the results file rather than hardcoded, because the model set is
+    per-target: a target that does not run the foundation model must not get a
+    blank third panel.
+    """
+
+    scores = pd.read_csv(
+        os.path.join(RESULTS_FOLDER, "benchmark_scores.csv"),
+        usecols=["target", "model"]
+    )
+
+    present = scores[scores.target == TARGET].model.unique()
+
+    return sorted(present, key=lambda name: (MODEL_ORDER.get(name, 99), name))
 
 
 def load_slice(model):
@@ -221,7 +222,7 @@ def draw_panel(ax, subset, preds, levels, title, grid, z_max, show_zlabel):
     ax.set_xticklabels(tick_labels)
 
     ax.set_xlabel("forecast origin", labelpad=8)
-    ax.set_ylabel(TARGET_LABELS[TARGET], labelpad=8)
+    ax.set_ylabel(target_label(TARGET), labelpad=8)
     # Both panels share the density scale, so it is labelled once.
     if show_zlabel:
         ax.set_zlabel("density", labelpad=2)
@@ -245,11 +246,13 @@ def main():
 
     os.makedirs(FIGURE_FOLDER, exist_ok=True)
 
-    fig = plt.figure(figsize=(15, 6.6))
+    models = MODELS if MODELS is not None else models_on_target()
+
+    fig = plt.figure(figsize=(7.5 * len(models), 6.6))
 
     slices = {}
 
-    for model in MODELS:
+    for model in models:
 
         subset, preds, levels = load_slice(model)
 
@@ -277,20 +280,20 @@ def main():
         for subset, preds, levels in slices.values()
     )
 
-    for position, model in enumerate(MODELS, start=1):
+    for position, model in enumerate(models, start=1):
 
         subset, preds, levels = slices[model]
 
-        ax = fig.add_subplot(1, len(MODELS), position, projection="3d")
+        ax = fig.add_subplot(1, len(models), position, projection="3d")
 
         draw_panel(
-            ax, subset, preds, levels, MODEL_LABELS[model], grid, z_max,
+            ax, subset, preds, levels, model_label(model), grid, z_max,
             show_zlabel=(position == 1)
         )
 
     fig.suptitle(
         f"h = {HORIZON} predictive distributions over time - "
-        f"{COUNTRY_LABELS[COUNTRY]}, {TARGET_LABELS[TARGET]}",
+        f"{COUNTRY_LABELS[COUNTRY]}, {target_label(TARGET)}",
         x=0.02, ha="left", fontsize=13, fontweight="bold", color=INK_PRIMARY
     )
 

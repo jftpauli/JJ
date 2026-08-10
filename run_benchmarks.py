@@ -1,15 +1,19 @@
 """Rolling-origin backtest of the benchmark models.
 
-Expanding window, re-estimated every REFIT_EVERY months and applied at every
-month in between - the usual compromise between a fully recursive scheme and
-what a quantile regression grid costs to fit.
+Expanding window, re-estimated every `refit_every` periods and applied at every
+period in between - the usual compromise between a fully recursive scheme and
+what a quantile regression grid costs to fit. Chronos-2 has nothing to estimate,
+so the schedule does not bind it: it gets a fresh forward pass at every origin.
 
 Targets are stationary transforms, not index levels. Quantile regression on an
 integrated series is badly conditioned, and a density benchmark on a random
-walk mostly measures the drift, so:
+walk mostly measures the drift, so each target is a growth rate or a
+year-on-year rate; see TARGETS below for the current set.
 
-    cpi_yoy     year-on-year CPI inflation, %   (as published)
-    ipi_growth  100 * dlog(industrial production), monthly %
+Not every model runs on every target. The model set is part of the target's
+spec, so a model that only makes sense for one series - or that is only wanted
+for one - is declared there rather than switched on inside the loop. Anything
+downstream reads the model list off the scores file rather than assuming it.
 
 Scores are written per (target, country, model, origin, horizon) so any
 aggregation - by horizon, by country, excluding COVID - can be done downstream
@@ -27,6 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from models import (
     DEFAULT_QUANTILES,
+    Chronos2,
     HistoricalQuantiles,
     QuantileAR,
     coverage,
@@ -46,7 +51,32 @@ OUTPUT_FOLDER = "results"
 
 H_MAX = 12
 FIRST_ORIGIN = "2005-01-01"
-REFIT_EVERY = 12
+
+# The two targets run at different frequencies, so anything measured in periods
+# has to be set per target. h = 12 therefore means twelve *months* for CPI and
+# twelve *quarters* (three years) for GDP - the horizon axes of the two are not
+# the same axis, and tables should not be read across them.
+#
+# `models` names which benchmarks run on the target. Only CPI inflation carries
+# the foundation model: the output target is mid-way through a change of source
+# series, so putting Chronos-2 on it now would produce numbers that have to be
+# thrown away. Add "chronos2" to that list once the series is settled.
+TARGETS = {
+    "cpi_yoy": {
+        "file": "OECD_cpi_yoy_monthly_panel.csv",
+        "freq": "M",
+        "refit_every": 12,          # re-estimate annually
+        "climatology_window": 240,  # 20 years
+        "models": ["historical_20y", "qar", "chronos2"]
+    },
+    "gdp_growth": {
+        "file": "OECD_gdp_growth_quarterly_panel.csv",
+        "freq": "Q",
+        "refit_every": 4,           # re-estimate annually
+        "climatology_window": 80,   # 20 years
+        "models": ["historical_20y", "qar"]
+    }
+}
 
 # The 0.05-0.95 grid with the tails refined. The extra levels cost little (the
 # quantile regression is linear in the number of levels) and they matter for
@@ -63,17 +93,36 @@ QUANTILES = np.unique(np.concatenate([
 REFERENCE_MODEL = "historical_20y"
 
 
-def build_models():
-    """A fresh, unfitted set of benchmarks."""
+def build_models(spec):
+    """A fresh, unfitted set of benchmarks for one target.
 
-    return {
+    Only the models named in the target's `models` list are built, so a target
+    that does not run the foundation model never pays to load its weights.
+    """
+
+    catalogue = {
         # Unconditional empirical quantiles over a rolling 20-year window - the
-        # climatological reference. No seasonal split: the targets are already
-        # year-on-year or growth rates. The expanding-window variant scored
-        # within 0.008 skill of this one everywhere, so only one is kept.
-        "historical_20y": HistoricalQuantiles(window=240, quantiles=QUANTILES),
-        "qar": QuantileAR(p=4, quantiles=QUANTILES)
+        # climatological reference. The window is given in the target's own
+        # periods, so it is 20 years for both frequencies. No seasonal split:
+        # the targets are already year-on-year or growth rates. The
+        # expanding-window variant scored within 0.008 skill of this one
+        # everywhere, so only one is kept.
+        "historical_20y": lambda: HistoricalQuantiles(
+            window=spec["climatology_window"], quantiles=QUANTILES
+        ),
+        "qar": lambda: QuantileAR(p=4, quantiles=QUANTILES),
+        # Zero-shot: no fitting, and the full history at every origin. Note
+        # that its pre-training window overlaps the evaluation sample, so it is
+        # not out-of-sample in the way the other two are - see models/chronos2.py.
+        "chronos2": lambda: Chronos2(quantiles=QUANTILES)
     }
+
+    unknown = set(spec["models"]) - set(catalogue)
+
+    if unknown:
+        raise ValueError(f"unknown model(s) in target spec: {sorted(unknown)}")
+
+    return {name: catalogue[name]() for name in spec["models"]}
 
 
 # ======================================================
@@ -87,18 +136,13 @@ def load_targets():
     transformation lives in oecd_api.py, so nothing here has to know about it.
     """
 
-    files = {
-        "cpi_yoy": "OECD_cpi_yoy_monthly_panel.csv",
-        "ipi_growth": "OECD_ipi_growth_monthly_panel.csv"
-    }
-
     return {
         name: pd.read_csv(
-            os.path.join(DATA_FOLDER, filename),
+            os.path.join(DATA_FOLDER, spec["file"]),
             index_col="TIME_PERIOD",
             parse_dates=True
         ).sort_index()
-        for name, filename in files.items()
+        for name, spec in TARGETS.items()
     }
 
 
@@ -106,8 +150,12 @@ def load_targets():
 # BACKTEST
 # ======================================================
 
-def backtest_series(y, dates, first_origin):
+def backtest_series(y, dates, first_origin, spec):
     """Score every model over the rolling origins of one series.
+
+    `spec` is the target's entry in TARGETS: it fixes the model set, the
+    re-estimation interval and the climatology window, all of which are counted
+    in the target's own periods (months or quarters).
 
     Returns a list of per-(model, origin, horizon) score records.
     """
@@ -125,10 +173,10 @@ def backtest_series(y, dates, first_origin):
 
         history = y[: t + 1]
 
-        # Re-estimate on the expanding window every REFIT_EVERY origins.
-        if fitted is None or count % REFIT_EVERY == 0:
+        # Re-estimate on the expanding window every `refit_every` origins.
+        if fitted is None or count % spec["refit_every"] == 0:
             fitted = {}
-            for name, model in build_models().items():
+            for name, model in build_models(spec).items():
                 try:
                     fitted[name] = model.fit(history)
                 except ValueError:
@@ -258,6 +306,27 @@ def aggregate_by_horizon(scores):
     return table
 
 
+def comparison_pairs(models):
+    """Which (challenger, incumbent) pairs to run the paired comparison on.
+
+    Every model is compared against the climatological reference, which is what
+    a skill score means. On top of that, the foundation model is compared
+    against the best estimated benchmark rather than only against climatology -
+    beating a distribution that conditions on nothing is a low bar, and "does
+    pre-training beat a quantile regression fitted on this series" is the
+    question the exercise actually asks.
+    """
+
+    pairs = [
+        (name, REFERENCE_MODEL) for name in models if name != REFERENCE_MODEL
+    ]
+
+    if "chronos2" in models and "qar" in models:
+        pairs.append(("chronos2", "qar"))
+
+    return pairs
+
+
 def compare_models(scores, model_a="qar", model_b=REFERENCE_MODEL):
     """Paired comparison of two models, by horizon.
 
@@ -352,7 +421,7 @@ def main():
             print(f"  {target_name:12s} {country} ...", flush=True)
 
             records, quantile_rows, skipped = backtest_series(
-                y, dates, first_origin
+                y, dates, first_origin, TARGETS[target_name]
             )
             total_skipped += skipped
 
@@ -415,8 +484,13 @@ def main():
         "coverage_50", "coverage_90", "width_90", "pit_mean", "pit_ks"
     ]
 
+    # Model sets differ by target, so the pairs are read off the results rather
+    # than taken as the cross-product.
     for target_name in sorted(scores.target.unique()):
-        for model_name in sorted(scores.model.unique()):
+
+        present = sorted(scores[scores.target == target_name].model.unique())
+
+        for model_name in present:
 
             print("\n" + "=" * 78)
             print(f"{target_name}  |  {model_name}   "
@@ -429,36 +503,65 @@ def main():
 
     # ---------- paired model comparison ----------
 
-    comparison = compare_models(scores)
+    pairs = comparison_pairs(sorted(scores.model.unique()))
+
+    comparisons = pd.concat(
+        {
+            f"{model_a}_vs_{model_b}": compare_models(scores, model_a, model_b)
+            for model_a, model_b in pairs
+        },
+        names=["comparison"]
+    )
+
     comparison_path = os.path.join(OUTPUT_FOLDER, "model_comparison.csv")
-    comparison.round(6).to_csv(comparison_path)
+    comparisons.round(6).to_csv(comparison_path)
 
-    for target_name in sorted(scores.target.unique()):
+    columns = [
+        "n_pairs",
+        "crps_mean_diff", "crps_median_diff", "crps_win_rate",
+        "ae_mean_diff", "ae_median_diff", "ae_win_rate",
+        "se_mean_diff", "se_median_diff", "se_win_rate"
+    ]
 
-        print("\n" + "=" * 78)
-        print(f"{target_name}  |  paired: qar minus {REFERENCE_MODEL} "
-              "(negative favours qar)")
-        print("=" * 78)
-        print(
-            comparison.loc[target_name][[
-                "n_pairs",
-                "crps_mean_diff", "crps_median_diff", "crps_win_rate",
-                "ae_mean_diff", "ae_median_diff", "ae_win_rate",
-                "se_mean_diff", "se_median_diff", "se_win_rate"
-            ]].round(4).to_string()
-        )
+    for model_a, model_b in pairs:
+
+        block = comparisons.loc[f"{model_a}_vs_{model_b}"]
+
+        for target_name in sorted(block.index.get_level_values("target").unique()):
+
+            print("\n" + "=" * 78)
+            print(f"{target_name}  |  paired: {model_a} minus {model_b} "
+                  f"(negative favours {model_a})")
+            print("=" * 78)
+            print(block.loc[target_name][columns].round(4).to_string())
+
+    # Pooling is only meaningful for models evaluated on every target. A model
+    # run on one target only would otherwise be averaged over a different -
+    # and here an easier - set of series than its rivals, and the pooled column
+    # would compare it against nothing in particular.
+    n_targets = scores.target.nunique()
+    coverage_by_model = scores.groupby("model").target.nunique()
+    pooled_models = sorted(coverage_by_model[coverage_by_model == n_targets].index)
+    partial_models = sorted(set(coverage_by_model.index) - set(pooled_models))
 
     print("\n" + "=" * 78)
-    print("Pooled across both targets and all 8 series - scaled CRPS")
+    print(f"Pooled across all {n_targets} targets and all "
+          f"{scores.groupby(['target', 'country']).ngroups} series - scaled CRPS")
     print("(raw CRPS is not comparable across targets; this divides by each "
-          "series'\n pre-2005 standard deviation, so the two are commensurable)")
+          "series'\n pre-2005 standard deviation, so they are commensurable)")
     print("=" * 78)
     print(
-        scores.pivot_table(
+        scores[scores.model.isin(pooled_models)].pivot_table(
             index="horizon", columns="model", values="crps_scaled",
             aggfunc="mean"
         ).round(4).to_string()
     )
+
+    if partial_models:
+        print(f"\nNot pooled - evaluated on a subset of the targets: "
+              f"{', '.join(partial_models)}. Read these per target instead; "
+              "pooling them\nagainst models scored on a different set of "
+              "series would not be a comparison.")
 
     print("\n90% interval coverage (nominal 0.90)")
     print(
