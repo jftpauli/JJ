@@ -28,6 +28,7 @@ from .scoring import (
     pit_from_quantiles,
     predictive_mean,
 )
+from .sundial import Sundial
 
 __all__ = [
     "BaseForecaster",
@@ -35,6 +36,7 @@ __all__ = [
     "DEFAULT_QUANTILES",
     "HistoricalQuantiles",
     "QuantileAR",
+    "Sundial",
     "coverage",
     "crps_from_quantiles",
     "crps_skill_score",

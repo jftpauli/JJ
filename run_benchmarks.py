@@ -34,6 +34,7 @@ from models import (
     Chronos2,
     HistoricalQuantiles,
     QuantileAR,
+    Sundial,
     coverage,
     crps_from_quantiles,
     crps_skill_score,
@@ -52,29 +53,33 @@ OUTPUT_FOLDER = "results"
 H_MAX = 12
 FIRST_ORIGIN = "2005-01-01"
 
+# Restrict the backtest to these countries; None runs every column in the panel.
+COUNTRIES = ["USA"]
+
 # The two targets run at different frequencies, so anything measured in periods
 # has to be set per target. h = 12 therefore means twelve *months* for CPI and
 # twelve *quarters* (three years) for GDP - the horizon axes of the two are not
 # the same axis, and tables should not be read across them.
 #
 # `models` names which benchmarks run on the target. Only CPI inflation carries
-# the foundation model: the output target is mid-way through a change of source
-# series, so putting Chronos-2 on it now would produce numbers that have to be
-# thrown away. Add "chronos2" to that list once the series is settled.
+# the foundation models here: the output target is mid-way through a change of
+# source series, so putting a pretrained model on it now would produce numbers
+# that have to be thrown away. Once the series is settled, the same model set can
+# be expanded for GDP growth if desired.
 TARGETS = {
     "cpi_yoy": {
         "file": "OECD_cpi_yoy_monthly_panel.csv",
         "freq": "M",
         "refit_every": 12,          # re-estimate annually
         "climatology_window": 240,  # 20 years
-        "models": ["historical_20y", "qar", "chronos2"]
+        "models": ["historical_20y", "qar", "chronos2", "sundial"]
     },
     "gdp_growth": {
         "file": "OECD_gdp_growth_quarterly_panel.csv",
         "freq": "Q",
         "refit_every": 4,           # re-estimate annually
         "climatology_window": 80,   # 20 years
-        "models": ["historical_20y", "qar"]
+        "models": ["historical_20y", "qar", "chronos2", "sundial"]
     }
 }
 
@@ -114,7 +119,8 @@ def build_models(spec):
         # Zero-shot: no fitting, and the full history at every origin. Note
         # that its pre-training window overlaps the evaluation sample, so it is
         # not out-of-sample in the way the other two are - see models/chronos2.py.
-        "chronos2": lambda: Chronos2(quantiles=QUANTILES)
+        "chronos2": lambda: Chronos2(quantiles=QUANTILES),
+        "sundial": lambda: Sundial(quantiles=QUANTILES)
     }
 
     unknown = set(spec["models"]) - set(catalogue)
@@ -149,7 +155,6 @@ def load_targets():
 # ======================================================
 # BACKTEST
 # ======================================================
-
 def backtest_series(y, dates, first_origin, spec):
     """Score every model over the rolling origins of one series.
 
@@ -182,7 +187,10 @@ def backtest_series(y, dates, first_origin, spec):
                 except ValueError:
                     fitted[name] = None
 
-        horizons = np.arange(1, min(H_MAX, len(y) - 1 - t) + 1)
+        horizons = np.arange(
+            1,
+            min(H_MAX, len(y) - 1 - t) + 1
+        )
 
         if len(horizons) == 0:
             continue
@@ -195,22 +203,86 @@ def backtest_series(y, dates, first_origin, spec):
                 continue
 
             try:
-                pred = model.predict_quantiles(len(horizons), history=history)
-            except ValueError:
-                # NaN at the forecast origin - the models refuse to impute.
+                pred = model.predict_quantiles(
+                    len(horizons),
+                    history=history
+                )
+            except Exception as e:
+                print(
+                    f"    FAILED: {name} at {dates[t]} "
+                    f"(h={len(horizons)}): {type(e).__name__}: {e}",
+                    flush=True
+                )
                 skipped += 1
                 continue
 
-            crps = crps_from_quantiles(actuals, pred, QUANTILES)
-            hit_90 = coverage(actuals, pred, QUANTILES, 0.05, 0.95)
-            hit_50 = coverage(actuals, pred, QUANTILES, 0.25, 0.75)
-            pit = pit_from_quantiles(actuals, pred, QUANTILES)
+            # --------------------------------------------------
+            # Sundial diagnostic: print first successful origin
+            # --------------------------------------------------
+            if name == "sundial" and count == 0:
+                i_lo_debug = int(
+                    np.argmin(np.abs(QUANTILES - 0.05))
+                )
+                i_med_debug = int(
+                    np.argmin(np.abs(QUANTILES - 0.50))
+                )
+                i_hi_debug = int(
+                    np.argmin(np.abs(QUANTILES - 0.95))
+                )
 
-            means = predictive_mean(pred, QUANTILES)
+                print("\n" + "=" * 80)
+                print(f"SUNDIAL DEBUG | origin={dates[t]}")
+                print("=" * 80)
 
-            i_med = int(np.argmin(np.abs(QUANTILES - 0.5)))
-            i_lo = int(np.argmin(np.abs(QUANTILES - 0.05)))
-            i_hi = int(np.argmin(np.abs(QUANTILES - 0.95)))
+                for i in range(min(5, len(horizons))):
+                    actual = actuals[i]
+                    p05 = pred[i, i_lo_debug]
+                    p50 = pred[i, i_med_debug]
+                    p95 = pred[i, i_hi_debug]
+
+                    print(
+                        f"h={i+1:2d} | "
+                        f"actual={actual:10.5f} | "
+                        f"p05={p05:10.5f} | "
+                        f"p50={p50:10.5f} | "
+                        f"p95={p95:10.5f} | "
+                        f"covered={p05 <= actual <= p95}"
+                    )
+
+                print("\nFull quantile distribution for h=1:")
+                for q, value in zip(QUANTILES, pred[0]):
+                    print(
+                        f"  q={q:6.3f}: {value:12.6f}"
+                    )
+
+                print("=" * 80 + "\n")
+
+            crps = crps_from_quantiles(
+                actuals, pred, QUANTILES
+            )
+            hit_90 = coverage(
+                actuals, pred, QUANTILES, 0.05, 0.95
+            )
+            hit_50 = coverage(
+                actuals, pred, QUANTILES, 0.25, 0.75
+            )
+            pit = pit_from_quantiles(
+                actuals, pred, QUANTILES
+            )
+
+            means = predictive_mean(
+                pred, QUANTILES
+            )
+
+            i_med = int(
+                np.argmin(np.abs(QUANTILES - 0.5))
+            )
+            i_lo = int(
+                np.argmin(np.abs(QUANTILES - 0.05))
+            )
+            i_hi = int(
+                np.argmin(np.abs(QUANTILES - 0.95))
+            )
 
             for i, h in enumerate(horizons):
 
@@ -227,16 +299,19 @@ def backtest_series(y, dates, first_origin, spec):
                     "crps": crps[i],
                     "covered_50": hit_50[i],
                     "covered_90": hit_90[i],
-                    "width_90": pred[i, i_hi] - pred[i, i_lo],
+                    "width_90": (
+                        pred[i, i_hi] - pred[i, i_lo]
+                    ),
                     "pit": pit[i]
                 })
 
                 # Full predictive quantiles, kept in step with `records` -
-                # calibration diagnostics need the whole distribution, not the
-                # scalar summaries.
+                # calibration diagnostics need the whole distribution, not
+                # the scalar summaries.
                 quantile_rows.append(pred[i])
 
     return records, quantile_rows, skipped
+
 
 
 def series_scales(targets, first_origin):
@@ -412,7 +487,9 @@ def main():
 
     for target_name, panel in targets.items():
 
-        for country in panel.columns:
+        columns = panel.columns if COUNTRIES is None else COUNTRIES
+
+        for country in columns:
 
             series = panel[country]
             y = series.to_numpy(dtype=float)
