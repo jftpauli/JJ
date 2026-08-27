@@ -21,12 +21,15 @@ import matplotlib.pyplot as plt
 MODEL_LABELS = {
     "historical_20y": "Historical quantiles",
     "qar": "Quantile AR",
-    "chronos2": "Chronos-2 (zero-shot)"
+    "chronos2": "Chronos-2 (zero-shot)",
+    "qar_nfci": "Quantile AR + NFCI",
+    "chronos2_nfci": "Chronos-2 + NFCI"
 }
 
 TARGET_LABELS = {
     "cpi_yoy": "CPI inflation, year-on-year (%)",
     "ipi_growth": "Industrial production, monthly growth (%)",
+    "ipi_growth_12m": "Industrial production, 12-month growth (%)",
     "gdp_growth": "Real GDP, quarterly growth (%)"
 }
 
@@ -60,7 +63,12 @@ def target_label(name):
 MODEL_COLORS = {
     "historical_20y": "#2a78d6",
     "qar": "#eb6834",
-    "chronos2": "#0e8f6f"
+    "chronos2": "#0e8f6f",
+    # A conditional model keeps the hue of the univariate model it nests, one
+    # shade darker: the pair is meant to be read as a pair, and a fourth and
+    # fifth unrelated hue would hide that.
+    "qar_nfci": "#a83c12",
+    "chronos2_nfci": "#08553f"
 }
 
 # Anything not in the table above, in order, so an unrecognised model is still
@@ -69,6 +77,15 @@ FALLBACK_COLORS = ["#8a5fb0", "#b8912f", "#4a3aa7", "#a03d5f"]
 
 DIFF_COLOR = "#4a3aa7"
 REALISED = "#eb6834"
+
+# One colour per country, so a country keeps its colour across the data
+# figures the same way a model does across the evaluation figures.
+COUNTRY_COLORS = {
+    "DEU": "#2a78d6",
+    "FRA": "#eb6834",
+    "GBR": "#0e8f6f",
+    "USA": "#b8912f"
+}
 
 SURFACE = "#fcfcfb"
 INK_PRIMARY = "#0b0b0b"

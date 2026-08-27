@@ -1,9 +1,10 @@
 """Chronos-2 - the pretrained time-series foundation model, zero-shot.
 
 Amazon's Chronos-2 (120M parameters, encoder-decoder over patched values). It is
-used here exactly as it ships: no fine-tuning, no per-series adaptation, no
-covariates. At each forecast origin the model sees the series' own past and
-emits the whole predictive distribution for h = 1..H in one forward pass.
+used here exactly as it ships: no fine-tuning and no per-series adaptation. At
+each forecast origin the model sees the series' own past - and, when the target
+declares covariates, their past as well - and emits the whole predictive
+distribution for h = 1..H in one forward pass.
 
 That is the comparison worth running. The point of a foundation model is that it
 brings information from *other* series - it has seen macro data, and inflation
@@ -53,7 +54,7 @@ and no seed is involved.
 
 import numpy as np
 
-from .base import BaseForecaster, rearrange
+from .base import BaseForecaster, check_exog, rearrange
 
 
 DEFAULT_MODEL_ID = "amazon/chronos-2"
@@ -113,10 +114,21 @@ class Chronos2(BaseForecaster):
         Refuse to forecast from fewer finite observations than this. The model
         will happily produce something from a handful of points; scoring that
         against benchmarks that require a real sample is not a fair comparison.
+    uses_exog : bool
+        Whether to pass covariates to the model. They go in as
+        `past_covariates` - values up to and including the forecast origin,
+        nothing beyond it. Chronos-2 also accepts `future_covariates`, which
+        would require knowing the covariate's path over the forecast window;
+        that is not information a forecaster has, and it is not what the
+        growth-at-risk regressions condition on either.
+    covariate_names : sequence of str or None
+        Names for the covariate columns. Only used to key the dict the pipeline
+        expects; the model treats them as opaque. Defaults to x1, x2, ...
     """
 
     def __init__(self, model_id=DEFAULT_MODEL_ID, device="auto",
-                 context_length=None, quantiles=None, min_observations=20):
+                 context_length=None, quantiles=None, min_observations=20,
+                 uses_exog=False, covariate_names=None):
 
         super().__init__(quantiles=quantiles)
 
@@ -124,8 +136,12 @@ class Chronos2(BaseForecaster):
         self.device = device
         self.context_length = context_length
         self.min_observations = int(min_observations)
+        self.uses_exog = bool(uses_exog)
+        self.covariate_names = covariate_names
 
-    def fit(self, y):
+        self.exog_ = None
+
+    def fit(self, y, exog=None):
         """Record the series. There is nothing to estimate.
 
         The pipeline is loaded here rather than lazily inside predict, so a
@@ -141,11 +157,41 @@ class Chronos2(BaseForecaster):
                 f"need {self.min_observations}"
             )
 
+        if self.uses_exog:
+
+            if exog is None:
+                raise ValueError(
+                    "this model was constructed with uses_exog=True but fit() "
+                    "was given no covariates"
+                )
+
+            self.exog_ = check_exog(exog, len(y))
+
+        elif exog is not None:
+            raise ValueError(
+                "covariates passed to a model constructed with uses_exog=False"
+            )
+
         load_pipeline(self.model_id, self.device)
 
         return self
 
-    def predict_quantiles(self, h_max, history=None):
+    def _covariate_dict(self, exog):
+        """The `past_covariates` mapping the pipeline expects."""
+
+        names = self.covariate_names
+
+        if names is None:
+            names = [f"x{j + 1}" for j in range(exog.shape[1])]
+
+        if len(names) != exog.shape[1]:
+            raise ValueError(
+                f"{len(names)} covariate names for {exog.shape[1]} columns"
+            )
+
+        return {name: exog[:, j] for j, name in enumerate(names)}
+
+    def predict_quantiles(self, h_max, history=None, exog_history=None):
         """Predictive quantiles for h = 1..h_max from one forward pass.
 
         Like HistoricalQuantiles, this recomputes from `history` when given -
@@ -174,8 +220,22 @@ class Chronos2(BaseForecaster):
 
         pipeline = load_pipeline(self.model_id, self.device)
 
+        if self.uses_exog:
+            exog = self.exog_ if exog_history is None else exog_history
+            exog = check_exog(exog, len(y))
+            inputs = [{
+                "target": y,
+                "past_covariates": self._covariate_dict(exog)
+            }]
+        elif exog_history is not None:
+            raise ValueError(
+                "covariates passed to a model constructed with uses_exog=False"
+            )
+        else:
+            inputs = [y]
+
         quantiles, _ = pipeline.predict_quantiles(
-            [y],
+            inputs,
             prediction_length=int(h_max),
             quantile_levels=[float(tau) for tau in self.quantiles],
             context_length=self.context_length,

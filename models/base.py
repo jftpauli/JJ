@@ -7,6 +7,23 @@ All models here follow the same contract:
 
 so a foundation model can be dropped in behind the same interface.
 
+A model that conditions on more than the target's own past sets the class
+attribute `uses_exog = True` and takes two extra keyword arguments:
+
+    model.fit(y, exog=X)
+    model.predict_quantiles(h_max, history=..., exog_history=...)
+
+where `X` has shape (len(y), k) and row i is the covariate vector observed at
+the same period as y[i]. Callers switch on `uses_exog` rather than passing the
+covariates blindly, so the univariate models keep their two-argument signature
+and nothing has to accept an argument it would ignore.
+
+Covariates enter *contemporaneously with the forecast origin only*. A model
+here never sees a covariate value dated after the origin, so no assumption
+about the future path of the conditioning variable is smuggled in - the
+growth-at-risk regressions this supports (Adrian, Boyarchenko & Giannone 2019;
+Loria, Matthes & Zhang 2025) are specified exactly that way.
+
 Two conventions are fixed across every benchmark:
 
 *Direct* multi-horizon.
@@ -37,6 +54,10 @@ DEFAULT_QUANTILES = np.round(np.arange(0.05, 0.96, 0.05), 2)
 
 class BaseForecaster(ABC):
     """Interface shared by every benchmark model."""
+
+    # Set True by models that take `exog` / `exog_history`. See the module
+    # docstring: callers dispatch on this rather than on isinstance checks.
+    uses_exog = False
 
     def __init__(self, quantiles=None):
 
@@ -84,16 +105,22 @@ class BaseForecaster(ABC):
             raise RuntimeError("call fit() before predict_quantiles()")
 
 
-def direct_design(y, p, h, seasonal_period=None):
+def direct_design(y, p, h, seasonal_period=None, exog=None):
     """Build the design for the direct h-step regression y_{t+h} ~ lags of y.
 
     Rows are the origins t with a complete set of p lags and an observed
     target; rows containing NaN are dropped (listwise). Returns
 
-        X : (n, k) regressors - constant, p lags, optional seasonal dummies
+        X : (n, k) regressors - constant, p lags, optional seasonal dummies,
+                   optional covariates dated at the origin
         z : (n,)   targets y_{t+h}
 
     The lag block is ordered [y_t, y_{t-1}, ..., y_{t-p+1}].
+
+    `exog`, when given, is (len(y), k) with row i observed at the same period
+    as y[i]; row t of the design takes exog[t] - the value at the origin, never
+    at the target date. A covariate row containing NaN drops that origin, the
+    same listwise rule the lags follow.
     """
 
     n_obs = len(y)
@@ -117,6 +144,9 @@ def direct_design(y, p, h, seasonal_period=None):
             seasonal_dummies(origins + h, seasonal_period)
         )
 
+    if exog is not None:
+        blocks.append(check_exog(exog, n_obs)[origins])
+
     X = np.hstack(blocks)
 
     keep = np.isfinite(X).all(axis=1) & np.isfinite(targets)
@@ -124,7 +154,7 @@ def direct_design(y, p, h, seasonal_period=None):
     return X[keep], targets[keep]
 
 
-def prediction_row(y, p, h, seasonal_period=None):
+def prediction_row(y, p, h, seasonal_period=None, exog=None):
     """The single regressor row for forecasting from the end of the sample."""
 
     if len(y) < p:
@@ -148,7 +178,39 @@ def prediction_row(y, p, h, seasonal_period=None):
             seasonal_dummies(np.array([origin + h]), seasonal_period)[0]
         )
 
+    if exog is not None:
+
+        row = check_exog(exog, len(y))[origin]
+
+        if not np.isfinite(row).all():
+            raise ValueError(
+                "the covariates at the forecast origin contain NaN. Skip this "
+                "origin - the model will not silently impute."
+            )
+
+        blocks.append(row)
+
     return np.concatenate(blocks)
+
+
+def check_exog(exog, n_obs):
+    """Validate a covariate block and return it as a 2-d float array."""
+
+    exog = np.asarray(exog, dtype=float)
+
+    if exog.ndim == 1:
+        exog = exog[:, None]
+
+    if exog.ndim != 2:
+        raise ValueError("exog must be 1- or 2-dimensional")
+
+    if len(exog) != n_obs:
+        raise ValueError(
+            f"exog has {len(exog)} rows but the series has {n_obs} - the two "
+            "must be aligned period by period"
+        )
+
+    return exog
 
 
 def seasonal_dummies(positions, period):
