@@ -1,57 +1,23 @@
 """Univariate probabilistic benchmark models.
 
-Every model exposes the same two calls,
+All three forecasters share one call,
 
-    model.fit(y).predict_quantiles(h_max)  ->  (h_max, n_quantiles) array
+    forecast(y, h)  ->  Series of predictive quantiles for y_{t+h}
 
-so a time-series foundation model can be evaluated behind the same interface.
+on the QUANTILES grid in config.toml, so they are interchangeable at an origin.
 
-    HistoricalQuantiles  unconditional empirical quantiles - the climatological
+    historical_quantiles unconditional empirical quantiles - the climatological
                          reference a forecast must beat to show any skill
-    QuantileAR           direct quantile AR - distribution-free and conditional;
-                         with uses_exog=True, the growth-at-risk quantile
-                         regression of Adrian, Boyarchenko & Giannone (2019)
-    Chronos2             pretrained foundation model, zero-shot - the thing the
+    quantile_ar          direct quantile AR - distribution-free and conditional
+    chronos2             pretrained foundation model, zero-shot - the thing the
                          two benchmarks above exist to be measured against
 
-See base.py for the direct-multi-horizon and quantile-output conventions, and
-scoring.py for the pinball / CRPS / coverage utilities used to compare them.
+Each is *direct*: horizon h gets its own mapping from the origin's information
+set to y_{t+h}, never a recursive unrolling.
 """
 
-from .base import DEFAULT_QUANTILES, BaseForecaster, rearrange
-from .chronos2 import Chronos2
-from .historical_quantiles import HistoricalQuantiles
+from .chronos2 import chronos2
+from .historical_quantiles import historical_quantiles
 from .qar import quantile_ar
-from .scoring import (
-    coverage,
-    coverage_tests,
-    crps_from_quantiles,
-    crps_skill_score,
-    diebold_mariano,
-    exceedances,
-    newey_west_variance,
-    pinball_loss,
-    pit_from_quantiles,
-    predictive_mean,
-    tail_pinball,
-)
 
-__all__ = [
-    "BaseForecaster",
-    "Chronos2",
-    "DEFAULT_QUANTILES",
-    "HistoricalQuantiles",
-    "quantile_ar",
-    "coverage",
-    "coverage_tests",
-    "crps_from_quantiles",
-    "crps_skill_score",
-    "diebold_mariano",
-    "exceedances",
-    "newey_west_variance",
-    "pinball_loss",
-    "pit_from_quantiles",
-    "predictive_mean",
-    "rearrange",
-    "tail_pinball",
-]
+__all__ = ["chronos2", "historical_quantiles", "quantile_ar"]

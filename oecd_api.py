@@ -19,8 +19,8 @@ Panels written to data/:
 
 The two variables run at *different frequencies* - CPI monthly, GDP quarterly -
 so a forecast horizon h means months for one and quarters for the other.
-Anything consuming these panels has to carry that distinction; run_benchmarks.py
-does so through a per-target frequency setting.
+Anything consuming these panels has to carry that distinction: a horizon in
+config.toml is read in the frequency of the panel it is applied to.
 
 Each variable is written twice: once as the level and once as the growth rate
 the forecasting work actually consumes. The growth panels are ready to model as
@@ -356,7 +356,7 @@ DERIVED = [
     #
     # Consecutive observations share eleven months. That is intrinsic to the
     # target, not a defect, but it makes every subsequent standard error a
-    # HAC standard error; see run_benchmarks.py.
+    # HAC standard error; see newey_west_variance in models/scoring.py.
     {
         "source": OUTPUT_FILE_IPI,
         "periods": 12,

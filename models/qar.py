@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-QUANTILES = (0.01, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 0.99)
+from config import QUANTILES
 
 # Lag order per horizon, selected by BIC and confirmed by out-of-sample pinball
 # loss on the four OECD CPI series. At h = 1 the two criteria agree on a sharp

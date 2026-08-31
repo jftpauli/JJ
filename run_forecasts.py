@@ -1,44 +1,56 @@
-"""Rolling-origin quantile forecasts for the CPI panel -> results/quantile_forecasts.csv."""
+"""Rolling-origin quantile forecasts for the CPI panel -> results/<model>_forecasts.csv."""
 
-import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 
-from models.qar import LAGS, QUANTILES
+from config import (COUNTRIES, DATA_PATHS, FORECAST_HORIZONS,
+                    FORECAST_START_DATE, QUANTILES, RESULTS_PATH)
+from models import chronos2, historical_quantiles, quantile_ar
 
-PANEL, OUTPUT, START = ("data/OECD_cpi_yoy_monthly_panel.csv",
-                        "results/quantile_forecasts.csv", "2005-01-01")
+PANEL = DATA_PATHS["cpi"]
+
+MODELS = {
+    "historical": historical_quantiles,
+    "qar": quantile_ar,
+    "chronos2": chronos2,
+}
 
 
-def backtest(y, h, p):
-    """Forecast y_{t+h} from every origin, refitting on what was known at each."""
+def backtest(forecast, y, h):
+    """Forecast y_{t+h} from every origin, on what was known at that origin.
+
+    The forecaster sees y up to and including the origin and nothing after, so
+    a model that estimates parameters re-estimates at every origin. `actual` is
+    the realised value at the target date, NaN for origins whose target has not
+    happened yet.
+    """
 
     y = y.dropna()
-    X = sm.add_constant(pd.concat([y.rename(j).shift(j) for j in range(p)], axis=1))
-    frame = X.join(y.shift(-h).rename("target"))
-    out = {}
+    origins = y.index[y.index >= pd.Timestamp(FORECAST_START_DATE)]
 
-    for i, origin in enumerate(y.index):
+    out = pd.DataFrame({t: forecast(y.loc[:t], h=h) for t in origins}).T
+    out.columns = [f"q{tau}" for tau in QUANTILES]
 
-        if origin < pd.Timestamp(START) or not X.iloc[i].notna().all():
-            continue
-
-        train = frame.iloc[:i - h + 1].dropna()   # targets observed by the origin
-        out[origin] = np.sort([
-            sm.QuantReg(train["target"], train.drop(columns="target")).fit(q=tau)
-              .predict(X.iloc[[i]]).iloc[0]
-            for tau in QUANTILES
-        ])
-
-    forecasts = pd.DataFrame(out, index=[f"q{tau}" for tau in QUANTILES]).T
-    return forecasts.assign(horizon=h, actual=y.shift(-h).reindex(forecasts.index))
+    return out.assign(horizon=h, actual=y.shift(-h).reindex(out.index))
 
 
-panel = pd.read_csv(PANEL, index_col=0, parse_dates=True)
+def main():
 
-pd.concat(
-    {c: pd.concat([backtest(panel[c], h, LAGS[h]) for h in LAGS]) for c in panel},
-    names=["country", "origin"]
-).to_csv(OUTPUT, float_format="%.6f")
+    panel = pd.read_csv(PANEL, index_col=0, parse_dates=True)[COUNTRIES]
+    RESULTS_PATH.mkdir(parents=True, exist_ok=True)
 
-print("saved", OUTPUT)
+    for name, forecast in MODELS.items():
+
+        path = RESULTS_PATH / f"{name}_forecasts.csv"
+
+        pd.concat(
+            {c: pd.concat([backtest(forecast, panel[c], h)
+                           for h in FORECAST_HORIZONS])
+             for c in panel},
+            names=["country", "origin"]
+        ).to_csv(path, float_format="%.6f")
+
+        print("saved", path)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,14 +1,13 @@
 """Shared labels, palette and axis styling for the figure scripts.
 
-The three plotting scripts drew from the same palette and the same label
+The plotting scripts drew from the same palette and the same label
 dictionaries, copied into each file. That was survivable with two models; it
 stops being survivable the moment a model is added, because the figures then
 disagree with each other about what colour a model is - which is exactly the
 kind of inconsistency a reader reads as meaning.
 
-Everything a figure needs to know about *which* models and targets exist is
-still read off results/benchmark_scores.csv at run time. This module only says
-how to draw them.
+Which models exist is read off the files in results/ at run time. This module
+only says how to draw them.
 """
 
 import matplotlib.pyplot as plt
@@ -19,11 +18,9 @@ import matplotlib.pyplot as plt
 # ======================================================
 
 MODEL_LABELS = {
-    "historical_20y": "Historical quantiles",
+    "historical": "Historical quantiles",
     "qar": "Quantile AR",
-    "chronos2": "Chronos-2 (zero-shot)",
-    "qar_nfci": "Quantile AR + NFCI",
-    "chronos2_nfci": "Chronos-2 + NFCI"
+    "chronos2": "Chronos-2 (zero-shot)"
 }
 
 TARGET_LABELS = {
@@ -61,14 +58,9 @@ def target_label(name):
 # across every figure.
 
 MODEL_COLORS = {
-    "historical_20y": "#2a78d6",
+    "historical": "#2a78d6",
     "qar": "#eb6834",
-    "chronos2": "#0e8f6f",
-    # A conditional model keeps the hue of the univariate model it nests, one
-    # shade darker: the pair is meant to be read as a pair, and a fourth and
-    # fifth unrelated hue would hide that.
-    "qar_nfci": "#a83c12",
-    "chronos2_nfci": "#08553f"
+    "chronos2": "#0e8f6f"
 }
 
 # Anything not in the table above, in order, so an unrecognised model is still
