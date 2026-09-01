@@ -1,18 +1,35 @@
 """Rolling-origin quantile forecasts for the CPI panel -> results/<model>_forecasts.csv."""
 
+import os
+
 import pandas as pd
 
 from config import (COUNTRIES, DATA_PATHS, FORECAST_HORIZONS,
                     FORECAST_START_DATE, QUANTILES, RESULTS_PATH)
-from models import chronos2, historical_quantiles, quantile_ar
+from models import historical_quantiles, quantile_ar
+from models.chronos2 import chronos2
+from models.sundial import sundial
 
 PANEL = DATA_PATHS["cpi"]
 
-MODELS = {
+AVAILABLE_MODELS = {
     "historical": historical_quantiles,
     "qar": quantile_ar,
     "chronos2": chronos2,
+    "sundial": sundial,
 }
+
+MODEL_NAMES = tuple(
+    name.strip()
+    for name in os.environ.get("FORECAST_MODELS", "historical,qar,chronos2").split(",")
+    if name.strip()
+)
+
+unknown_models = set(MODEL_NAMES) - AVAILABLE_MODELS.keys()
+if unknown_models:
+    raise ValueError(f"Unknown forecast model(s): {', '.join(sorted(unknown_models))}")
+
+MODELS = {name: AVAILABLE_MODELS[name] for name in MODEL_NAMES}
 
 
 def backtest(forecast, y, h):
