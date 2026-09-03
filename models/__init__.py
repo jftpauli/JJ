@@ -1,41 +1,38 @@
 """Univariate probabilistic benchmark models.
 
-Every model exposes the same two calls,
+All three forecasters share one call,
 
-    model.fit(y).predict_quantiles(h_max)  ->  (h_max, n_quantiles) array
+    forecast(y, h)  ->  Series of predictive quantiles for y_{t+h}
 
-so a time-series foundation model can be evaluated behind the same interface.
+on the QUANTILES grid in config.toml, so they are interchangeable at an origin.
 
-    HistoricalQuantiles  unconditional empirical quantiles - the climatological
+    historical_quantiles unconditional empirical quantiles - the climatological
                          reference a forecast must beat to show any skill
-    QuantileAR           direct quantile AR - distribution-free and conditional
+    quantile_ar          direct quantile AR - distribution-free and conditional
+    chronos2             pretrained foundation model, zero-shot - the thing the
+                         two benchmarks above exist to be measured against
+    sundial              pretrained foundation model, zero-shot - the thing the
+                         two benchmarks above exist to be measured against
 
-See base.py for the direct-multi-horizon and quantile-output conventions, and
-scoring.py for the pinball / CRPS / coverage utilities used to compare them.
+Each is *direct*: horizon h gets its own mapping from the origin's information
+set to y_{t+h}, never a recursive unrolling.
 """
 
-from .base import DEFAULT_QUANTILES, BaseForecaster, rearrange
-from .historical_quantiles import HistoricalQuantiles
-from .qar import QuantileAR
-from .scoring import (
-    coverage,
-    crps_from_quantiles,
-    crps_skill_score,
-    pinball_loss,
-    pit_from_quantiles,
-    predictive_mean,
-)
+from .historical_quantiles import historical_quantiles
+from .qar import quantile_ar
 
-__all__ = [
-    "BaseForecaster",
-    "DEFAULT_QUANTILES",
-    "HistoricalQuantiles",
-    "QuantileAR",
-    "coverage",
-    "crps_from_quantiles",
-    "crps_skill_score",
-    "pinball_loss",
-    "pit_from_quantiles",
-    "predictive_mean",
-    "rearrange",
-]
+__all__ = ["chronos2", "historical_quantiles", "quantile_ar", "sundial"]
+
+
+def __getattr__(name):
+    """Import chronos2/sundial lazily so their heavy deps (torch etc.) are only
+    required when the model is actually used."""
+
+    if name == "chronos2":
+        from .chronos2 import chronos2
+        return chronos2
+    if name == "sundial":
+        from .sundial import sundial
+        return sundial
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    

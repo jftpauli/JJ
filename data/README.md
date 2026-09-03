@@ -15,6 +15,8 @@ files with the current vintage — record the date alongside any estimates.
 | `OECD_cpi_yoy_monthly_panel.csv` | CPI, all items | % change on same month a year earlier | fetched |
 | `OECD_ipi_monthly_panel.csv` | Industrial production, industry except construction | index | fetched |
 | `OECD_ipi_growth_monthly_panel.csv` | Industrial production, industry except construction | monthly %, `100 × Δlog` | derived |
+| `OECD_ipi_growth12_monthly_panel.csv` | Industrial production, industry except construction | 12-month %, `100 × Δ₁₂log` | derived |
+| `FRED_nfci_monthly.csv` | Chicago Fed National Financial Conditions Index | index, monthly average of weekly | fetched (`../fred_api.py`) |
 
 Layout: `TIME_PERIOD` (month start, `YYYY-MM-01`) in column 1, then one column
 per country in ISO-3 code (`DEU`, `FRA`, `GBR`, `USA`).
@@ -34,6 +36,38 @@ log differences are additive across periods and symmetric in sign, which is what
 a forecasting target should be. It starts 1990-02 (431 months) — one month
 shorter than the index, since the first period has nothing to difference
 against.
+
+`OECD_ipi_growth12_monthly_panel.csv` is the **growth-at-risk target**: the same
+index, differenced over twelve months instead of one, starting 1991-01 (420
+months). Up to the 1/12 scaling it is the "average growth over the next year"
+that Adrian, Boyarchenko & Giannone (2019, *AER*) forecast for GDP and Loria,
+Matthes & Zhang (2025, *EJ*) for industrial production — averaging twelve
+consecutive monthly log changes telescopes to the twelve-month log change.
+
+Two properties of this panel that change how it must be handled:
+
+- **Observations overlap.** Consecutive months share eleven of their twelve
+  months, so the series is strongly autocorrelated by construction and every
+  standard error computed on it has to be HAC, or computed on origins thinned
+  to every twelfth month. This is intrinsic to the target, not a defect.
+- **It is far smoother than the monthly panel** — an order of magnitude more
+  persistent — and the two must not be compared on the same scale or read as
+  the same forecasting problem. Monthly IP growth is close to unforecastable;
+  the twelve-month rate is not.
+
+`FRED_nfci_monthly.csv` is the conditioning variable of that literature, and the
+only series here that is **not from the OECD and not a panel** — the NFCI is a
+US index, so the file has a single `USA` column and the models that condition on
+it run only on the US. FRED publishes it weekly (Fridays); the monthly value is
+the mean of the weeks dated inside the month, and a month is only reported if
+every one of its weeks is observed. The ECB's CISS is the nearest euro-area
+analogue but is a differently constructed index, not a drop-in substitute.
+
+Both the NFCI and the OECD panels are **current-vintage series used as though
+they had been available in real time**. The NFCI in particular is re-estimated
+as its inputs are revised. The papers above make the same assumption; it is
+still an assumption, and a genuinely real-time exercise would need vintage data
+(ALFRED for the US).
 
 ## Series keys
 
