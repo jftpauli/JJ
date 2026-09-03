@@ -3,6 +3,5 @@ results/*.csv
 results/*.npz
 __pycache__/
 *.pyc
-.venv/
-.venv-chronos/
+environments/
 .Rhistory
