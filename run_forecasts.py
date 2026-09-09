@@ -19,7 +19,7 @@ AVAILABLE_MODELS = {
 # Select models to run here -> check venv requirements! .\environments\.venv-chronos\Scripts\Activate.ps1
 MODEL_NAMES = tuple(
     name.strip()
-    for name in os.environ.get("FORECAST_MODELS", "historical,qar,chronos2").split(",")
+    for name in os.environ.get("FORECAST_MODELS", "historical,qar, sundial").split(",")
     if name.strip()
 )
 

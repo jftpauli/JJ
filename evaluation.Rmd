@@ -1,0 +1,212 @@
+---
+title: "JJ - Forecast evaluation"
+output: html_document
+date: "2026-09-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import settings
+```{r config}
+library(RcppTOML)
+
+config <- parseTOML("config.toml")
+
+COUNTRIES <- config$COUNTRIES
+LOOKBACK <- config$LOOKBACK
+N_SAMPLES <- config$N_SAMPLES
+FORECAST_HORIZONS <- config$FORECAST_HORIZONS
+QUANTILES <- config$QUANTILES
+FORECAST_START_DATE <- as.Date(config$FORECAST_START_DATE)
+INDICATORS <- config$INDICATORS
+RESULTS_PATH <- config$RESULTS_PATH
+BISTRO_ROOT <- config$BISTRO_ROOT
+DATA_PATHS <- config$DATA_PATHS
+```
+
+# Import data
+```{r results}
+files <- list.files(RESULTS_PATH, pattern = "\\.csv$", full.names = TRUE)
+results <- lapply(files, read.csv)
+names(results) <- tools::file_path_sans_ext(basename(files))
+
+cpi <- read.csv(DATA_PATHS$cpi)
+gdp <- read.csv(DATA_PATHS$gdp)
+ipi <- read.csv(DATA_PATHS$ipi)
+```
+
+# Evaluation setup
+
+Select multiple indicators here when required. Each indicator is evaluated
+independently: scores, tables, and plots are produced separately and are never
+averaged or pooled across indicators.
+
+```{r evaluation-setup}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+library(scoringRules)
+
+SELECTED_COUNTRIES <- COUNTRIES
+SELECTED_HORIZON <- 1
+SELECTED_INDICATORS <- c("cpi", "ipi")
+SELECTED_MODELS <- c("chronos2", "gas", "qar", "sundial", "timesfm")
+# SELECTED_MODELS <- c("historical")
+PLOT_COUNTRY <- SELECTED_COUNTRIES[1]
+
+INDICATOR_DATA <- list(cpi = cpi, gdp = gdp, ipi = ipi)
+PLOT_DIR <- "plots"
+source(file.path(PLOT_DIR, "theme.R"))
+source(file.path(PLOT_DIR, "model_comparison.R"))
+source(file.path(PLOT_DIR, "wis_decomposition.R"))
+source(file.path(PLOT_DIR, "calibration.R"))
+source(file.path(PLOT_DIR, "murphy.R"))
+
+stopifnot(all(SELECTED_INDICATORS %in% names(INDICATOR_DATA)))
+```
+
+# Evaluation by indicator
+
+Every iteration below is a separate evaluation problem. The named
+`evaluation_results` list preserves the indicator boundary for downstream use;
+there is no combined score across indicators.
+
+```{r evaluate-indicators, results='hide'}
+TAU <- sort(as.numeric(QUANTILES))
+LOWER_TAUS <- TAU[TAU < 0.5]
+K <- length(LOWER_TAUS)
+
+model_name_for <- function(result_name, indicator_suffix) {
+  substr(result_name, 1, nchar(result_name) - nchar(indicator_suffix))
+}
+
+load_indicator_forecasts <- function(indicator) {
+  indicator_suffix <- paste0("_", indicator, "_forecasts")
+  candidates <- names(results)[endsWith(names(results), indicator_suffix)]
+  selected <- candidates[
+    vapply(candidates, model_name_for, character(1), indicator_suffix) %in%
+      SELECTED_MODELS
+  ]
+
+  bind_rows(lapply(selected, function(result_name) {
+    df <- results[[result_name]]
+    df$model <- model_name_for(result_name, indicator_suffix)
+    df
+  })) %>%
+    filter(
+      country %in% SELECTED_COUNTRIES,
+      horizon == SELECTED_HORIZON,
+      !is.na(actual)
+    ) %>%
+    mutate(
+      origin = as.Date(origin),
+      target_date = origin %m+% months(SELECTED_HORIZON)
+    )
+}
+
+evaluate_indicator <- function(indicator) {
+  forecasts <- load_indicator_forecasts(indicator)
+  historical <- INDICATOR_DATA[[indicator]] %>%
+    select(TIME_PERIOD, all_of(PLOT_COUNTRY)) %>%
+    rename(date = TIME_PERIOD, value = all_of(PLOT_COUNTRY)) %>%
+    mutate(date = as.Date(date))
+
+  y <- forecasts$actual
+  median_ae <- abs(y - forecasts[["q0.5"]])
+  is_mat <- sapply(LOWER_TAUS, function(tau) {
+    alpha <- 2 * tau
+    lower <- forecasts[[paste0("q", tau)]]
+    upper <- forecasts[[paste0("q", 1 - tau)]]
+    (alpha / 2) * scoringRules::ints_quantiles(
+      y, lower, upper, target_coverage = 1 - alpha
+    )
+  })
+  disp_mat <- sapply(LOWER_TAUS, function(tau) {
+    alpha <- 2 * tau
+    lower <- forecasts[[paste0("q", tau)]]
+    upper <- forecasts[[paste0("q", 1 - tau)]]
+    (alpha / 2) * (upper - lower)
+  })
+
+  forecasts <- forecasts %>%
+    mutate(
+      wis = (0.5 * median_ae + rowSums(is_mat)) / (K + 0.5),
+      sharpness = rowSums(disp_mat) / (K + 0.5),
+      calibration = wis - sharpness
+    ) %>%
+    rowwise() %>%
+    mutate(
+      pit = approx(
+        x = c_across(all_of(paste0("q", TAU))),
+        y = TAU, xout = actual, rule = 2
+      )$y
+    ) %>%
+    ungroup()
+
+  scores_summary <- forecasts %>%
+    group_by(model) %>%
+    summarise(
+      wis = mean(wis), sharpness = mean(sharpness),
+      calibration = mean(calibration), n = n(), .groups = "drop"
+    ) %>%
+    arrange(wis)
+
+  coverage <- bind_rows(lapply(LOWER_TAUS, function(tau) {
+    alpha <- 2 * tau
+    lower <- forecasts[[paste0("q", tau)]]
+    upper <- forecasts[[paste0("q", 1 - tau)]]
+    forecasts %>%
+      mutate(inside = actual >= lower & actual <= upper) %>%
+      group_by(model) %>%
+      summarise(empirical_coverage = mean(inside), .groups = "drop") %>%
+      mutate(nominal_coverage = 1 - alpha)
+  }))
+
+  list(
+    forecasts = forecasts,
+    historical = historical,
+    scores_summary = scores_summary,
+    coverage = coverage,
+    murphy = murphy_scores(forecasts)
+  )
+}
+
+evaluation_results <- setNames(
+  lapply(SELECTED_INDICATORS, evaluate_indicator),
+  SELECTED_INDICATORS
+)
+```
+
+```{r report-indicators, results='asis'}
+for (indicator in SELECTED_INDICATORS) {
+  result <- evaluation_results[[indicator]]
+  forecasts <- result$forecasts
+  historical <- result$historical
+  scores_summary <- result$scores_summary
+  coverage <- result$coverage
+
+  cat("\n## ", toupper(indicator), "\n\n", sep = "")
+  cat("All metrics below use only ", toupper(indicator),
+      " forecasts and are not combined with other indicators.\n\n", sep = "")
+
+  print(plot_model_comparison(
+    forecasts, historical, indicator, SELECTED_HORIZON, PLOT_COUNTRY
+  ))
+  print(scores_summary)
+  print(plot_wis_decomposition(
+    scores_summary, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+  ))
+  print(plot_pit(
+    forecasts, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+  ))
+  print(plot_coverage(
+    coverage, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+  ))
+  print(plot_murphy(
+    result$murphy, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+  ))
+}
+```
