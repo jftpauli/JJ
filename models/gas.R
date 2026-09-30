@@ -13,12 +13,54 @@
 # initial LOOKBACK window and re-fit at every origin - a full grid search per
 # origin would be prohibitively slow for little BIC gain.
 
+# Edit these vectors to choose which indicators and countries to run.
+RUN_INDICATORS <- c("cpi", "ipi")
+RUN_COUNTRIES <- c("DEU", "FRA", "GBR", "USA") #
+
 library(gasmodel)
 library(RcppTOML)
+library(rstudioapi)
 
-config <- parseTOML("config.toml")
+source_path <- tryCatch(
+  {
+    path <- rstudioapi::getSourceEditorContext()$path
+    if (is.null(path)) "" else path
+  },
+  error = function(e) ""
+)
+if (!nzchar(source_path)) {
+  file_arg <- grep("^--file=", commandArgs(), value = TRUE)
+  if (length(file_arg) == 0) {
+    stop("Could not determine the location of gas.R")
+  }
+  source_path <- sub("^--file=", "", file_arg[[1]])
+}
 
-dir.create(config$RESULTS_PATH, showWarnings = FALSE, recursive = TRUE)
+project_root <- normalizePath(dirname(source_path), mustWork = TRUE)
+project_root <- normalizePath(file.path(project_root, ".."), mustWork = TRUE)
+config_path <- file.path(project_root, "config.toml")
+
+resolve_project_path <- function(path) {
+  path <- as.character(path)
+  if (grepl("^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)", path, perl = TRUE)) {
+    return(normalizePath(path, mustWork = FALSE))
+  }
+  file.path(project_root, path)
+}
+
+config <- parseTOML(config_path)
+
+unknown_indicators <- setdiff(RUN_INDICATORS, config$INDICATORS)
+unknown_countries <- setdiff(RUN_COUNTRIES, config$COUNTRIES)
+if (length(unknown_indicators) > 0) {
+  stop(sprintf("Unknown indicator(s): %s", paste(unknown_indicators, collapse = ", ")))
+}
+if (length(unknown_countries) > 0) {
+  stop(sprintf("Unknown country/countries: %s", paste(unknown_countries, collapse = ", ")))
+}
+
+results_path <- resolve_project_path(config$RESULTS_PATH)
+dir.create(results_path, showWarnings = FALSE, recursive = TRUE)
 
 forecast_date <- as.Date(config$FORECAST_START_DATE)
 horizons <- config$FORECAST_HORIZONS
@@ -29,7 +71,7 @@ quantile_cols <- paste0("q", quantiles)
 # for every origin. Kept deliberately small - each combination needs a full
 # simulation-based forecast, and the panels are short monthly series.
 DISTRIBUTIONS <- c("normal", "t")
-ORDERS <- 1:2
+ORDERS <- 0:2
 
 #' Add `n` months to a Date, respecting month-end rollover.
 add_months <- function(date, n) seq(date, by = "month", length.out = n + 1)[n + 1]
@@ -114,17 +156,18 @@ forecast_rows <- function(spec, window, origin, country, full_series, last_date)
   do.call(rbind, rows)
 }
 
-for (dataset in config$INDICATORS) {
+for (dataset in RUN_INDICATORS) {
 
-  path <- config$DATA_PATHS[[dataset]]
-  if (is.null(path)) next  # no data configured for this indicator, skip
+  configured_path <- config$DATA_PATHS[[dataset]]
+  if (is.null(configured_path)) next  # no data configured for this indicator, skip
+  path <- resolve_project_path(configured_path)
 
   dat <- read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
   dat$TIME_PERIOD <- as.Date(dat$TIME_PERIOD)
 
   results <- list()
 
-  for (country in config$COUNTRIES) {
+  for (country in RUN_COUNTRIES) {
 
     series <- dat[!is.na(dat[[country]]), c("TIME_PERIOD", country)]
     names(series) <- c("date", "value")
@@ -160,7 +203,7 @@ for (dataset in config$INDICATORS) {
   }
 
   out <- do.call(rbind, results)
-  out_path <- file.path(config$RESULTS_PATH, sprintf("gas_%s_forecasts.csv", dataset))
+  out_path <- file.path(results_path, sprintf("gas_%s_forecasts.csv", dataset))
   write.csv(out, out_path, row.names = FALSE)
   cat(sprintf("saved %s\n", out_path))
 }
