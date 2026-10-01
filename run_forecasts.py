@@ -19,7 +19,7 @@ AVAILABLE_MODELS = {
 # Select models to run here -> check venv requirements! .\environments\.venv-chronos\Scripts\Activate.ps1
 MODEL_NAMES = tuple(
     name.strip()
-    for name in os.environ.get("FORECAST_MODELS", "historical,qar, sundial").split(",")
+    for name in os.environ.get("FORECAST_MODELS", "historical,qar, timesfm").split(",")
     if name.strip()
 )
 
@@ -43,10 +43,31 @@ def backtest(forecast, y, h):
     # drop the last h origins so every target date has an actual value on record
     origins = y.index[y.index >= pd.Timestamp(FORECAST_START_DATE)][:-h]
 
+    if len(origins) == 0:
+        columns = [f"q{tau}" for tau in QUANTILES]
+        return pd.DataFrame(
+            columns=columns + ["horizon", "actual"]
+        ).rename_axis("origin")
+
     out = pd.DataFrame({t: forecast(y.loc[:t], h=h) for t in origins}).T
     out.columns = [f"q{tau}" for tau in QUANTILES]
 
     return out.assign(horizon=h, actual=y.shift(-h).reindex(out.index))
+
+
+def country_forecasts(forecast, series):
+    """Combine available horizons, allowing a country to have no origins."""
+
+    frames = [
+        backtest(forecast, series, h)
+        for h in FORECAST_HORIZONS
+    ]
+    frames = [frame for frame in frames if not frame.empty]
+
+    if not frames:
+        return pd.DataFrame()
+
+    return pd.concat(frames)
 
 
 def main():
@@ -61,10 +82,18 @@ def main():
 
             path = RESULTS_PATH / f"{name}_{indicator}_forecasts.csv"
 
+            country_results = {
+                c: country_forecasts(forecast, panel[c])
+                for c in panel
+            }
+            country_results = {
+                c: result
+                for c, result in country_results.items()
+                if not result.empty
+            }
+
             pd.concat(
-                {c: pd.concat([backtest(forecast, panel[c], h)
-                               for h in FORECAST_HORIZONS])
-                 for c in panel},
+                country_results,
                 names=["country", "origin"]
             ).to_csv(path, float_format="%.6f")
 

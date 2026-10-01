@@ -17,7 +17,7 @@ murphy_scores <- function(forecasts, alphas = c(0.1, 0.5, 0.9)) {
           threshold = theta,
           score = mean(
             2 * (as.numeric(outcome_below) - alpha) *
-              (as.numeric(forecast_below) - as.numeric(outcome_below))
+              (as.numeric(outcome_below) - as.numeric(forecast_below))
           )
         )
       }))

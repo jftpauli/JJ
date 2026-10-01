@@ -51,7 +51,7 @@ library(lubridate)
 library(scoringRules)
 
 SELECTED_COUNTRIES <- COUNTRIES
-SELECTED_HORIZON <- 1
+SELECTED_HORIZON <- 12
 SELECTED_INDICATORS <- c("cpi", "ipi")
 SELECTED_MODELS <- c("chronos2", "gas", "qar", "sundial", "timesfm")
 # SELECTED_MODELS <- c("historical")

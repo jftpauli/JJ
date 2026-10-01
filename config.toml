@@ -1,4 +1,4 @@
-COUNTRIES = ["DEU", "FRA", "GBR", "USA"]
+COUNTRIES = ["DEU", "FRA", "GBR", "USA", "JPN"]
 
 LOOKBACK = 240
 N_SAMPLES = 1000
@@ -15,5 +15,4 @@ BISTRO_ROOT = "C:/Users/juliu/Documents/Forschung/third_party/bistro"
 
 [DATA_PATHS]
 cpi = "data/OECD_cpi_yoy_monthly_panel.csv"
-gdp = "data/OECD_gdp_growth_quarterly_panel.csv"
-ipi = "data/OECD_ipi_growth_monthly_panel.csv"
+ipi = "data/OECD_ipi_yoy_monthly_panel.csv"
