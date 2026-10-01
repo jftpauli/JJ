@@ -33,7 +33,6 @@ results <- lapply(files, read.csv)
 names(results) <- tools::file_path_sans_ext(basename(files))
 
 cpi <- read.csv(DATA_PATHS$cpi)
-gdp <- read.csv(DATA_PATHS$gdp)
 ipi <- read.csv(DATA_PATHS$ipi)
 ```
 
@@ -51,13 +50,13 @@ library(lubridate)
 library(scoringRules)
 
 SELECTED_COUNTRIES <- COUNTRIES
-SELECTED_HORIZON <- 12
+SELECTED_HORIZONS <- c(1, 12)
 SELECTED_INDICATORS <- c("cpi", "ipi")
 SELECTED_MODELS <- c("chronos2", "gas", "qar", "sundial", "timesfm")
 # SELECTED_MODELS <- c("historical")
 PLOT_COUNTRY <- SELECTED_COUNTRIES[1]
 
-INDICATOR_DATA <- list(cpi = cpi, gdp = gdp, ipi = ipi)
+INDICATOR_DATA <- list(cpi = cpi, ipi = ipi)
 PLOT_DIR <- "plots"
 source(file.path(PLOT_DIR, "theme.R"))
 source(file.path(PLOT_DIR, "model_comparison.R"))
@@ -83,7 +82,7 @@ model_name_for <- function(result_name, indicator_suffix) {
   substr(result_name, 1, nchar(result_name) - nchar(indicator_suffix))
 }
 
-load_indicator_forecasts <- function(indicator) {
+load_indicator_forecasts <- function(indicator, horizon) {
   indicator_suffix <- paste0("_", indicator, "_forecasts")
   candidates <- names(results)[endsWith(names(results), indicator_suffix)]
   selected <- candidates[
@@ -98,17 +97,17 @@ load_indicator_forecasts <- function(indicator) {
   })) %>%
     filter(
       country %in% SELECTED_COUNTRIES,
-      horizon == SELECTED_HORIZON,
+      horizon == !!horizon,
       !is.na(actual)
     ) %>%
     mutate(
       origin = as.Date(origin),
-      target_date = origin %m+% months(SELECTED_HORIZON)
+      target_date = origin %m+% months(!!horizon)
     )
 }
 
-evaluate_indicator <- function(indicator) {
-  forecasts <- load_indicator_forecasts(indicator)
+evaluate_indicator <- function(indicator, horizon) {
+  forecasts <- load_indicator_forecasts(indicator, horizon)
   historical <- INDICATOR_DATA[[indicator]] %>%
     select(TIME_PERIOD, all_of(PLOT_COUNTRY)) %>%
     rename(date = TIME_PERIOD, value = all_of(PLOT_COUNTRY)) %>%
@@ -174,39 +173,50 @@ evaluate_indicator <- function(indicator) {
   )
 }
 
+evaluation_keys <- expand.grid(
+  indicator = SELECTED_INDICATORS, horizon = SELECTED_HORIZONS,
+  stringsAsFactors = FALSE
+)
+
 evaluation_results <- setNames(
-  lapply(SELECTED_INDICATORS, evaluate_indicator),
-  SELECTED_INDICATORS
+  Map(evaluate_indicator, evaluation_keys$indicator, evaluation_keys$horizon),
+  paste(evaluation_keys$indicator, evaluation_keys$horizon, sep = "_h")
 )
 ```
 
+Each indicator-horizon pair below is evaluated and reported fully separately:
+no scores, tables, or plots ever mix horizons.
+
 ```{r report-indicators, results='asis'}
-for (indicator in SELECTED_INDICATORS) {
-  result <- evaluation_results[[indicator]]
+for (i in seq_len(nrow(evaluation_keys))) {
+  indicator <- evaluation_keys$indicator[i]
+  horizon <- evaluation_keys$horizon[i]
+  result <- evaluation_results[[paste0(indicator, "_h", horizon)]]
   forecasts <- result$forecasts
   historical <- result$historical
   scores_summary <- result$scores_summary
   coverage <- result$coverage
 
-  cat("\n## ", toupper(indicator), "\n\n", sep = "")
+  cat("\n## ", toupper(indicator), " - horizon ", horizon, "\n\n", sep = "")
   cat("All metrics below use only ", toupper(indicator),
-      " forecasts and are not combined with other indicators.\n\n", sep = "")
+      " forecasts at horizon ", horizon,
+      " and are not combined with other indicators or horizons.\n\n", sep = "")
 
   print(plot_model_comparison(
-    forecasts, historical, indicator, SELECTED_HORIZON, PLOT_COUNTRY
+    forecasts, historical, indicator, horizon, PLOT_COUNTRY
   ))
   print(scores_summary)
   print(plot_wis_decomposition(
-    scores_summary, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+    scores_summary, indicator, horizon, SELECTED_COUNTRIES
   ))
   print(plot_pit(
-    forecasts, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+    forecasts, indicator, horizon, SELECTED_COUNTRIES
   ))
   print(plot_coverage(
-    coverage, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+    coverage, indicator, horizon, SELECTED_COUNTRIES
   ))
   print(plot_murphy(
-    result$murphy, indicator, SELECTED_HORIZON, SELECTED_COUNTRIES
+    result$murphy, indicator, horizon, SELECTED_COUNTRIES
   ))
 }
 ```

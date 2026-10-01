@@ -1,103 +1,70 @@
-"""Rolling-origin quantile forecasts for each INDICATORS panel -> results/<model>_<indicator>_forecasts.csv."""
+"""Orchestrator: runs each selected model as a separate subprocess in its own
+venv (no manual activation needed) -> results/<model>_<indicator>_forecasts.csv.
+
+Edit MODEL_NAMES below to choose what runs.
+"""
 
 import os
+import subprocess
+import sys
+from pathlib import Path
 
-import pandas as pd
+ROOT = Path(__file__).resolve().parent
+WORKER = ROOT / "forecast_worker.py"
 
-from config import (COUNTRIES, DATA_PATHS, FORECAST_HORIZONS,
-                    FORECAST_START_DATE, INDICATORS, QUANTILES, RESULTS_PATH)
+# Select models to run here.
+MODEL_NAMES = ["historical", "qar", "timesfm", "chronos2", "sundial"]
 
-# Import lazily per model so chronos2/sundial's mutually incompatible deps are
-# only loaded when that model is actually selected to run.
-AVAILABLE_MODELS = {
-    "historical": lambda: __import__("models.historical_quantiles", fromlist=["historical_quantiles"]).historical_quantiles,
-    "qar": lambda: __import__("models.qar", fromlist=["quantile_ar"]).quantile_ar,
-    "chronos2": lambda: __import__("models.chronos2", fromlist=["chronos2"]).chronos2,
-    "sundial": lambda: __import__("models.sundial", fromlist=["sundial"]).sundial,
-    "timesfm": lambda: __import__("models.timesfm", fromlist=["timesfm"]).timesfm,
+# Each model's dedicated venv python; None falls back to the current interpreter.
+VENVS = {
+    "historical": ROOT / "environments/.venv-benchmark/Scripts/python.exe",
+    "qar": ROOT / "environments/.venv-benchmark/Scripts/python.exe",
+    "chronos2": ROOT / "environments/.venv-chronos/Scripts/python.exe",
+    "sundial": ROOT / "environments/.venv-sundial/Scripts/python.exe",
+    "timesfm": ROOT / "environments/.venv-timesfm/Scripts/python.exe",
 }
-# Select models to run here -> check venv requirements! .\environments\.venv-chronos\Scripts\Activate.ps1
-MODEL_NAMES = tuple(
-    name.strip()
-    for name in os.environ.get("FORECAST_MODELS", "historical,qar, timesfm").split(",")
-    if name.strip()
-)
-
-unknown_models = set(MODEL_NAMES) - AVAILABLE_MODELS.keys()
-if unknown_models:
-    raise ValueError(f"Unknown forecast model(s): {', '.join(sorted(unknown_models))}")
-
-MODELS = {name: AVAILABLE_MODELS[name]() for name in MODEL_NAMES}
 
 
-def backtest(forecast, y, h):
-    """Forecast y_{t+h} from every origin, on what was known at that origin.
+def child_env(python_exe):
+    """A clean environment for python_exe, independent of any venv activated
+    in the calling shell (an inherited PATH/VIRTUAL_ENV can make the child
+    pick up a different venv's DLLs, e.g. mismatched torch builds)."""
 
-    The forecaster sees y up to and including the origin and nothing after, so
-    a model that estimates parameters re-estimates at every origin. `actual` is
-    the realised value at the target date, NaN for origins whose target has not
-    happened yet.
-    """
+    env = os.environ.copy()
+    env.pop("VIRTUAL_ENV", None)
+    env.pop("PYTHONHOME", None)
+    env.pop("PYTHONPATH", None)
 
-    y = y.dropna()
-    # drop the last h origins so every target date has an actual value on record
-    origins = y.index[y.index >= pd.Timestamp(FORECAST_START_DATE)][:-h]
+    venv_scripts = str(Path(python_exe).parent)
+    path_parts = [p for p in env.get("PATH", "").split(os.pathsep) if p]
+    path_parts = [p for p in path_parts if "environments" not in p.lower()]
+    env["PATH"] = os.pathsep.join([venv_scripts] + path_parts)
 
-    if len(origins) == 0:
-        columns = [f"q{tau}" for tau in QUANTILES]
-        return pd.DataFrame(
-            columns=columns + ["horizon", "actual"]
-        ).rename_axis("origin")
-
-    out = pd.DataFrame({t: forecast(y.loc[:t], h=h) for t in origins}).T
-    out.columns = [f"q{tau}" for tau in QUANTILES]
-
-    return out.assign(horizon=h, actual=y.shift(-h).reindex(out.index))
-
-
-def country_forecasts(forecast, series):
-    """Combine available horizons, allowing a country to have no origins."""
-
-    frames = [
-        backtest(forecast, series, h)
-        for h in FORECAST_HORIZONS
-    ]
-    frames = [frame for frame in frames if not frame.empty]
-
-    if not frames:
-        return pd.DataFrame()
-
-    return pd.concat(frames)
+    return env
 
 
 def main():
 
-    RESULTS_PATH.mkdir(parents=True, exist_ok=True)
+    results = {}
 
-    for indicator in INDICATORS:
+    for i, name in enumerate(MODEL_NAMES, start=1):
 
-        panel = pd.read_csv(DATA_PATHS[indicator], index_col=0, parse_dates=True)[COUNTRIES]
+        python_exe = VENVS.get(name) or sys.executable
+        print(f"[{i}/{len(MODEL_NAMES)}] running {name} ({python_exe})")
 
-        for name, forecast in MODELS.items():
+        completed = subprocess.run(
+            [str(python_exe), str(WORKER), name],
+            cwd=ROOT,
+            env=child_env(python_exe),
+        )
+        results[name] = completed.returncode
 
-            path = RESULTS_PATH / f"{name}_{indicator}_forecasts.csv"
+        status = "ok" if completed.returncode == 0 else f"FAILED (exit {completed.returncode})"
+        print(f"[{i}/{len(MODEL_NAMES)}] {name}: {status}")
 
-            country_results = {
-                c: country_forecasts(forecast, panel[c])
-                for c in panel
-            }
-            country_results = {
-                c: result
-                for c, result in country_results.items()
-                if not result.empty
-            }
-
-            pd.concat(
-                country_results,
-                names=["country", "origin"]
-            ).to_csv(path, float_format="%.6f")
-
-            print("saved", path)
+    print("\nsummary:")
+    for name, code in results.items():
+        print(f"  {name}: {'ok' if code == 0 else f'FAILED (exit {code})'}")
 
 
 if __name__ == "__main__":
