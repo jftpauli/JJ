@@ -52,7 +52,7 @@ library(scoringRules)
 SELECTED_COUNTRIES <- COUNTRIES
 SELECTED_HORIZONS <- c(1, 12)
 SELECTED_INDICATORS <- c("cpi", "ipi")
-SELECTED_MODELS <- c("chronos2", "gas", "qar", "sundial", "timesfm")
+SELECTED_MODELS <- c("chronos2", "qar", "sundial", "timesfm") #"gas",
 # SELECTED_MODELS <- c("historical")
 PLOT_COUNTRY <- SELECTED_COUNTRIES[1]
 

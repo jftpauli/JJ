@@ -122,7 +122,7 @@ forecast_rows <- function(spec, window, origin, country, full_series, last_date)
     quant = quantiles
   )
 
-  rows <- lapply(horizons, function(h) {
+  rows <- lapply(horizons, function(h) {ö
 
     target_date <- add_months(origin, h)
     if (target_date > last_date) return(NULL)  # ran out of actuals to compare against
