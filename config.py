@@ -14,6 +14,8 @@ with open(ROOT / "config.toml", "rb") as f:
 
 COUNTRIES = _cfg["COUNTRIES"]
 INDICATORS = _cfg["INDICATORS"]
+MODELS = tuple(_cfg["MODELS"])
+MODEL_ENVIRONMENTS = _cfg["MODEL_ENVIRONMENTS"]
 
 LOOKBACK = _cfg["LOOKBACK"]
 N_SAMPLES = _cfg["N_SAMPLES"]
