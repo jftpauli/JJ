@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ast
 import re
+import shutil
 import subprocess
 import sys
 import venv
@@ -30,6 +31,12 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parent.parent
 REQUIREMENTS = Path(__file__).resolve().parent
 ENVIRONMENTS = ROOT / "environments"
+INSTALLED_MARKER = ".installed"
+
+# Environments that cannot use the Python running this script. Sundial pins
+# transformers 4.40.1 -> tokenizers 0.19.1, which has no wheels (and does not
+# build) for Python >= 3.13.
+PYTHON_VERSIONS = {"sundial": "3.12"}
 
 
 def load_toml_without_dependency() -> dict[str, object]:
@@ -90,17 +97,61 @@ def python_executable(environment_name: str) -> Path:
     return environment / "bin" / "python"
 
 
+def find_python(version: str) -> str:
+    """Locate a Python interpreter of the given ``major.minor`` version."""
+
+    if f"{sys.version_info.major}.{sys.version_info.minor}" == version:
+        return sys.executable
+
+    candidates = [shutil.which(f"python{version}")]
+    if sys.platform == "win32" and shutil.which("py"):
+        candidates.append(
+            subprocess.run(
+                ["py", f"-{version}", "-c", "import sys; print(sys.executable)"],
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+        )
+    if shutil.which("uv"):
+        subprocess.run(["uv", "python", "install", version], check=False)
+        candidates.append(
+            subprocess.run(
+                ["uv", "python", "find", version],
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+        )
+
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+
+    raise RuntimeError(
+        f"Python {version} is required but was not found. Install it (or uv) "
+        "and run this script again."
+    )
+
+
 def setup_environment(environment_name: str, requirement_file: Path) -> None:
     executable = python_executable(environment_name)
+    environment = executable.parent.parent
 
-    if executable.exists():
+    if (environment / INSTALLED_MARKER).exists():
         print(f"[skip] .venv-{environment_name} already exists")
         return
+    if environment.exists():
+        print(f"[remove] incomplete .venv-{environment_name}")
+        shutil.rmtree(environment)
 
-    environment = executable.parent.parent
     environment.parent.mkdir(parents=True, exist_ok=True)
     print(f"[create] .venv-{environment_name}")
-    venv.create(environment, with_pip=True)
+    version = PYTHON_VERSIONS.get(environment_name)
+    if version is None:
+        venv.create(environment, with_pip=True)
+    else:
+        subprocess.run(
+            [find_python(version), "-m", "venv", str(environment)], check=True
+        )
 
     print(f"[install] {requirement_file.name} -> .venv-{environment_name}")
     subprocess.run(
@@ -108,6 +159,7 @@ def setup_environment(environment_name: str, requirement_file: Path) -> None:
         cwd=ROOT,
         check=True,
     )
+    (environment / INSTALLED_MARKER).touch()
 
 
 def main() -> None:

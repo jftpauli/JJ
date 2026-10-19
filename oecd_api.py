@@ -16,13 +16,20 @@ Outputs in ``data/``:
 
 * ``OECD_cpi_yoy_vintages_monthly_long.csv``
 * ``OECD_ipi_yoy_vintages_monthly_long.csv``
-* ``OECD_cpi_yoy_monthly_panel.csv``
-* ``OECD_ipi_yoy_monthly_panel.csv``
+* ``OECD_cpi_yoy_latest_monthly_panel.csv``
+* ``OECD_ipi_yoy_latest_monthly_panel.csv``
 
 The first two files retain every edition and are the source for real-time
-analysis. The two panel files select the first available release for each
+analysis. The two panel files select the latest available release for each
 country-month and use the same wide layout as the model input panels:
 ``TIME_PERIOD`` followed by ISO-3 country columns.
+
+Rebased CPI series drop out of the revisions flow: Japanese CPI ends in
+2021-06 from edition 202207 onward, French CPI in 2025-12 from edition 202603
+onward. These months are filled from the current COICOP 2018 prices flow. For every edition, each missing month up to
+the usual two-month publication lag gets the current value, tagged
+``source = "prices_c2018"`` (all other rows are ``"revisions"``). Unadjusted
+CPI is rarely revised, so this approximates the real-time series.
 
 The revisions flow does not expose a separate IPI adjustment dimension. The
 IPI series is selected by its stable revisions-flow codes (``PRVM``, ``IX``,
@@ -39,7 +46,7 @@ import requests
 
 COUNTRIES = ["DEU", "FRA", "GBR", "USA", "JPN"]
 START_DATE = "1990-01"
-END_DATE = "2025-12"
+END_DATE = "2026-08"
 OUTPUT_FOLDER = "data"
 REQUEST_TIMEOUT = 180
 
@@ -49,13 +56,26 @@ REVISION_FLOW = (
     "4.0"
 )
 
+PRICES_FLOW = (
+    "OECD.SDD.TPS,"
+    "DSD_PRICES_COICOP2018@DF_PRICES_C2018_ALL,"
+    "1.0"
+)
+
+# Target/country pairs missing from the revisions flow, filled from the prices
+# flow: (variable, country) -> (series key, publication lag in months).
+SUPPLEMENTS = {
+    ("CPI_YOY", "JPN"): ("JPN.M.N.CPI.IX._T.N._Z", 2),
+    ("CPI_YOY", "FRA"): ("FRA.M.N.CPI.IX._T.N._Z", 2),
+}
+
 OUTPUT_FILES = {
     "CPI_YOY": "OECD_cpi_yoy_vintages_monthly_long.csv",
     "IPI_YOY": "OECD_ipi_yoy_vintages_monthly_long.csv",
 }
-FIRST_RELEASE_FILES = {
-    "CPI_YOY": "OECD_cpi_yoy_monthly_panel.csv",
-    "IPI_YOY": "OECD_ipi_yoy_monthly_panel.csv",
+LATEST_RELEASE_FILES = {
+    "CPI_YOY": "OECD_cpi_yoy_latest_monthly_panel.csv",
+    "IPI_YOY": "OECD_ipi_yoy_latest_monthly_panel.csv",
 }
 
 
@@ -78,6 +98,70 @@ def fetch_revisions(country):
         raise ValueError(f"No revisions returned for {country}.")
 
     return frame
+
+
+def fetch_current_index(key):
+    """Download one current-vintage monthly index from the prices flow."""
+
+    url = (
+        "https://sdmx.oecd.org/public/rest/data/"
+        f"{PRICES_FLOW}/{key}?"
+        f"startPeriod={START_DATE}"
+        f"&endPeriod={END_DATE}"
+        "&dimensionAtObservation=AllDimensions"
+        "&format=csvfilewithlabels"
+    )
+    response = requests.get(url, timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    frame = pd.read_csv(io.StringIO(response.text))
+
+    if frame.empty:
+        raise ValueError(f"No prices data returned for {key}.")
+
+    index = pd.Series(
+        pd.to_numeric(frame["OBS_VALUE"], errors="coerce").values,
+        index=pd.to_datetime(frame["TIME_PERIOD"]),
+    ).sort_index()
+    return index.dropna()
+
+
+def supplement_vintages(vintages, variable, country, index, lag):
+    """Add current YoY values for months an edition is missing.
+
+    Each edition receives the months after its last revisions-flow
+    observation, up to ``lag`` months before the edition date.
+    """
+
+    yoy = index.pct_change(12).mul(100).dropna()
+    target = vintages[
+        (vintages["variable"] == variable)
+        & (vintages["country"] == country)
+    ]
+    last_observed = target.groupby("edition")["time_period"].max()
+    editions = (
+        vintages.loc[vintages["variable"] == variable,
+                     ["edition", "edition_period"]]
+        .drop_duplicates()
+    )
+
+    rows = []
+    for edition, edition_period in editions.itertuples(index=False):
+        start = last_observed.get(edition, pd.Timestamp.min)
+        end = edition_period - pd.DateOffset(months=lag)
+        months = yoy[(yoy.index > start) & (yoy.index <= end)]
+        rows.append(pd.DataFrame({
+            "country": country,
+            "time_period": months.index,
+            "edition": edition,
+            "edition_period": edition_period,
+            "value": months.values,
+            "variable": variable,
+            "source": "prices_c2018",
+        }))
+
+    added = pd.concat(rows, ignore_index=True)
+    print(f"{variable} {country}: {len(added):,} rows added from prices flow")
+    return pd.concat([vintages, added], ignore_index=True)
 
 
 def select_index(frame, variable):
@@ -143,6 +227,7 @@ def derive_yoy(index_vintages, variable, country):
     result = result.dropna(subset=["value"])
     result["country"] = country
     result["variable"] = variable
+    result["source"] = "revisions"
 
     return result[[
         "country",
@@ -151,24 +236,28 @@ def derive_yoy(index_vintages, variable, country):
         "edition_period",
         "value",
         "variable",
+        "source",
     ]].sort_values(["country", "time_period", "edition"])
 
 
-def first_release_panel(vintages, variable):
-    """Return the earliest-edition value per country-month in wide format."""
+def latest_release_panel(vintages, variable):
+    """Return the latest-edition value per country-month in wide format."""
 
-    first = (
+    latest = (
         vintages[vintages["variable"] == variable]
         .sort_values(["country", "time_period", "edition"])
         .groupby(["country", "time_period"], as_index=False)
-        .first()
+        .last()
     )
-    panel = first.pivot(
+    panel = latest.pivot(
         index="time_period",
         columns="country",
         values="value"
     ).sort_index()
     panel = panel.reindex(columns=COUNTRIES)
+    # Fill interior gaps linearly (e.g. USA CPI 2025-10, missing in the OECD
+    # data); leave the ragged edge at the end as NaN.
+    panel = panel.interpolate(limit_area="inside")
     panel.columns.name = None
     panel.index.name = "TIME_PERIOD"
     return panel
@@ -204,18 +293,27 @@ def main():
 
     vintages = pd.concat(all_vintages, ignore_index=True)
 
+    for (variable, country), (key, lag) in SUPPLEMENTS.items():
+        print(f"Downloading current {variable} for {country}...")
+        vintages = supplement_vintages(
+            vintages, variable, country, fetch_current_index(key), lag
+        )
+    vintages = vintages.sort_values(
+        ["variable", "country", "time_period", "edition"]
+    )
+
     for variable, filename in OUTPUT_FILES.items():
         target = vintages[vintages["variable"] == variable].copy()
         target.to_csv(
             os.path.join(OUTPUT_FOLDER, filename),
             index=False
         )
-        first_release_panel(target, variable).to_csv(
-            os.path.join(OUTPUT_FOLDER, FIRST_RELEASE_FILES[variable])
+        latest_release_panel(target, variable).to_csv(
+            os.path.join(OUTPUT_FOLDER, LATEST_RELEASE_FILES[variable])
         )
         report(vintages, variable)
 
-    print("Finished. First-release panels are ready for downstream models.")
+    print("Finished. Latest-release panels are ready for downstream models.")
 
 
 if __name__ == "__main__":

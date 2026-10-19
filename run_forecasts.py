@@ -15,13 +15,23 @@ WORKER = ROOT / "forecast_worker.py"
 # Select models to run here.
 MODEL_NAMES = ["historical", "qar", "timesfm", "chronos2", "sundial"]
 
+
+def venv_python(environment_name):
+    """Platform-specific python path inside environments/.venv-<name>."""
+
+    environment = ROOT / "environments" / f".venv-{environment_name}"
+    if sys.platform == "win32":
+        return environment / "Scripts" / "python.exe"
+    return environment / "bin" / "python"
+
+
 # Each model's dedicated venv python; None falls back to the current interpreter.
 VENVS = {
-    "historical": ROOT / "environments/.venv-benchmark/Scripts/python.exe",
-    "qar": ROOT / "environments/.venv-benchmark/Scripts/python.exe",
-    "chronos2": ROOT / "environments/.venv-chronos/Scripts/python.exe",
-    "sundial": ROOT / "environments/.venv-sundial/Scripts/python.exe",
-    "timesfm": ROOT / "environments/.venv-timesfm/Scripts/python.exe",
+    "historical": venv_python("benchmark"),
+    "qar": venv_python("benchmark"),
+    "chronos2": venv_python("chronos"),
+    "sundial": venv_python("sundial"),
+    "timesfm": venv_python("timesfm"),
 }
 
 
