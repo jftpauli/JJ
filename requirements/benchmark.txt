@@ -1,4 +1,7 @@
-﻿formulaic==1.2.2
+certifi==2026.7.22
+charset-normalizer==3.5.1
+formulaic==1.2.2
+idna==3.19
 interface_meta==2.0.1
 narwhals==2.26.0
 numpy==2.2.6
@@ -12,5 +15,7 @@ six==1.17.0
 statsmodels==0.15.0
 tomli==2.4.1
 typing_extensions==4.16.0
+requests==2.34.2
 tzdata==2026.4
+urllib3==2.7.0
 wrapt==2.5.0

@@ -1,4 +1,7 @@
-﻿certifi==2026.7.22
+﻿# python: 3.12
+# Sundial pins transformers 4.40.1 -> tokenizers 0.19.1, which has no wheels
+# (and does not build) for Python >= 3.13.
+certifi==2026.7.22
 charset-normalizer==3.5.1
 colorama==0.4.6
 filelock==3.32.5

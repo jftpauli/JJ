@@ -33,10 +33,30 @@ REQUIREMENTS = Path(__file__).resolve().parent
 ENVIRONMENTS = ROOT / "environments"
 INSTALLED_MARKER = ".installed"
 
-# Environments that cannot use the Python running this script. Sundial pins
-# transformers 4.40.1 -> tokenizers 0.19.1, which has no wheels (and does not
-# build) for Python >= 3.13.
-PYTHON_VERSIONS = {"sundial": "3.12"}
+PYTHON_HEADER = re.compile(r"(?m)^#\s*python:\s*(\d+\.\d+)\s*$")
+
+
+def required_python(requirement_file: Path) -> str | None:
+    """Return the ``# python: X.Y`` version declared in a requirements file."""
+
+    match = PYTHON_HEADER.search(requirement_file.read_text(encoding="utf-8-sig"))
+    return match.group(1) if match else None
+
+
+def find_uv() -> list[str] | None:
+    """Return a command that runs uv, installing it with pip if necessary."""
+
+    if shutil.which("uv"):
+        return ["uv"]
+    command = [sys.executable, "-m", "uv"]
+    if subprocess.run(command + ["--version"], capture_output=True).returncode:
+        print("[install] uv (used to obtain the required Python version)")
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "uv"], check=False
+        )
+        if subprocess.run(command + ["--version"], capture_output=True).returncode:
+            return None
+    return command
 
 
 def load_toml_without_dependency() -> dict[str, object]:
@@ -112,11 +132,15 @@ def find_python(version: str) -> str:
                 text=True,
             ).stdout.strip()
         )
-    if shutil.which("uv"):
-        subprocess.run(["uv", "python", "install", version], check=False)
+    if any(c and Path(c).exists() for c in candidates):
+        uv = None
+    else:
+        uv = find_uv()
+    if uv:
+        subprocess.run(uv + ["python", "install", version], check=False)
         candidates.append(
             subprocess.run(
-                ["uv", "python", "find", version],
+                uv + ["python", "find", version],
                 capture_output=True,
                 text=True,
             ).stdout.strip()
@@ -145,7 +169,7 @@ def setup_environment(environment_name: str, requirement_file: Path) -> None:
 
     environment.parent.mkdir(parents=True, exist_ok=True)
     print(f"[create] .venv-{environment_name}")
-    version = PYTHON_VERSIONS.get(environment_name)
+    version = required_python(requirement_file)
     if version is None:
         venv.create(environment, with_pip=True)
     else:
