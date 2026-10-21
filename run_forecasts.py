@@ -14,7 +14,7 @@ WORKER = ROOT / "forecast_worker.py"
 OECD_SCRIPT = ROOT / "oecd_api.py"
 
 # Select models to run here.
-MODEL_NAMES = ["historical", "qar", "timesfm", "chronos2", "sundial"]
+MODEL_NAMES = ["historical", "qar", "timesfm", "chronos2", "moirai", "sundial"]
 
 
 def venv_python(environment_name):
@@ -33,6 +33,7 @@ VENVS = {
     "chronos2": venv_python("chronos"),
     "sundial": venv_python("sundial"),
     "timesfm": venv_python("timesfm"),
+    "moirai": venv_python("moirai"),
 }
 
 
@@ -70,7 +71,7 @@ def fetch_oecd_data():
 
 def main():
 
-    fetch_oecd_data()
+    #fetch_oecd_data()
 
     results = {}
 

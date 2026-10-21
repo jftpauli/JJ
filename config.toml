@@ -13,7 +13,7 @@ RESULTS_PATH = "results"
 # Path to the local Bistro installation
 BISTRO_ROOT = "C:/Users/juliu/Documents/Forschung/third_party/bistro"
 
-MODELS = ["historical", "qar", "timesfm", "chronos2", "sundial"]
+MODELS = ["historical", "qar", "timesfm", "chronos2", "sundial", "moirai"]
 
 [MODEL_ENVIRONMENTS]
 historical = "benchmark"
@@ -21,6 +21,7 @@ qar = "benchmark"
 timesfm = "timesfm"
 chronos2 = "chronos"
 sundial = "sundial"
+moirai = "moirai"
 
 [DATA_PATHS]
 cpi = "data/OECD_cpi_yoy_latest_monthly_panel.csv"

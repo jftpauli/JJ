@@ -160,22 +160,28 @@ def setup_environment(environment_name: str, requirement_file: Path) -> None:
     executable = python_executable(environment_name)
     environment = executable.parent.parent
 
-    if (environment / INSTALLED_MARKER).exists():
-        print(f"[skip] .venv-{environment_name} already exists")
-        return
-    if environment.exists():
-        print(f"[remove] incomplete .venv-{environment_name}")
-        shutil.rmtree(environment)
-
-    environment.parent.mkdir(parents=True, exist_ok=True)
-    print(f"[create] .venv-{environment_name}")
-    version = required_python(requirement_file)
-    if version is None:
-        venv.create(environment, with_pip=True)
+    marker = environment / INSTALLED_MARKER
+    if marker.exists():
+        # Reinstall into the existing venv when the requirements file was
+        # edited (or pulled) after the environment was last set up.
+        if marker.stat().st_mtime >= requirement_file.stat().st_mtime:
+            print(f"[skip] .venv-{environment_name} already exists")
+            return
+        print(f"[update] {requirement_file.name} changed since .venv-{environment_name} was set up")
     else:
-        subprocess.run(
-            [find_python(version), "-m", "venv", str(environment)], check=True
-        )
+        if environment.exists():
+            print(f"[remove] incomplete .venv-{environment_name}")
+            shutil.rmtree(environment)
+
+        environment.parent.mkdir(parents=True, exist_ok=True)
+        print(f"[create] .venv-{environment_name}")
+        version = required_python(requirement_file)
+        if version is None:
+            venv.create(environment, with_pip=True)
+        else:
+            subprocess.run(
+                [find_python(version), "-m", "venv", str(environment)], check=True
+            )
 
     print(f"[install] {requirement_file.name} -> .venv-{environment_name}")
     subprocess.run(
