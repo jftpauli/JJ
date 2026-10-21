@@ -18,6 +18,7 @@ AVAILABLE_MODELS = {
     "sundial": lambda: __import__("models.sundial", fromlist=["sundial"]).sundial,
     "timesfm": lambda: __import__("models.timesfm", fromlist=["timesfm"]).timesfm,
     "moirai": lambda: __import__("models.moirai", fromlist=["moirai"]).moirai,
+    "timestral": lambda: __import__("models.timestral", fromlist=["timestral"]).timestral,
 }
 
 

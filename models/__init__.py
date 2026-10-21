@@ -17,6 +17,8 @@ on the QUANTILES grid in config.toml, so they are interchangeable at an origin.
                          two benchmarks above exist to be measured against
     moirai                pretrained foundation model, zero-shot - the thing the
                          two benchmarks above exist to be measured against
+    timestral             pretrained foundation model, zero-shot - the thing the
+                         two benchmarks above exist to be measured against
 
 Each is *direct*: horizon h gets its own mapping from the origin's information
 set to y_{t+h}, never a recursive unrolling.
@@ -26,7 +28,7 @@ from .historical_quantiles import historical_quantiles
 from .qar import quantile_ar
 
 __all__ = ["chronos2", "historical_quantiles", "moirai", "quantile_ar", "sundial",
-           "timesfm"]
+           "timesfm", "timestral"]
 
 
 def __getattr__(name):
@@ -45,5 +47,8 @@ def __getattr__(name):
     if name == "moirai":
         from .moirai import moirai
         return moirai
+    if name == "timestral":
+        from .timestral import timestral
+        return timestral
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     
