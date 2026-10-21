@@ -15,7 +15,7 @@
 
 # Edit these vectors to choose which indicators and countries to run.
 RUN_INDICATORS <- c("cpi", "ipi")
-RUN_COUNTRIES <- c("DEU", "FRA", "GBR", "USA") #
+RUN_COUNTRIES <- c("DEU", "FRA", "GBR", "USA", "JPN")
 
 library(gasmodel)
 library(RcppTOML)
@@ -122,7 +122,7 @@ forecast_rows <- function(spec, window, origin, country, full_series, last_date)
     quant = quantiles
   )
 
-  rows <- lapply(horizons, function(h) {ö
+  rows <- lapply(horizons, function(h) {
 
     target_date <- add_months(origin, h)
     if (target_date > last_date) return(NULL)  # ran out of actuals to compare against

@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 environments/
 .Rhistory
+evaluation.html

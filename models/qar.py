@@ -39,7 +39,7 @@ def select_lags(y, h, max_lags=MAX_LAGS):
     best_sic, best_p = np.inf, 1
     for p in range(1, max_lags + 1):
         X = sm.add_constant(data[:, :p], has_constant="add")
-        resid = sm.QuantReg(target, X).fit(q=0.5).resid
+        resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=5000).resid
         sic = np.log(np.mean(np.abs(resid))) + (p + 1) * np.log(n) / (2 * n)
         if sic < best_sic:
             best_sic, best_p = sic, p
@@ -63,7 +63,7 @@ def quantile_ar(y, h=12, p=None, quantiles=QUANTILES):
     data = X.join(y.shift(-h).rename("target")).dropna()
 
     preds = [
-        sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau)
+        sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
            .predict(X.dropna().iloc[[-1]]).iloc[0]
         for tau in quantiles
     ]
