@@ -1,210 +1,161 @@
-# Score-driven (GAS) quantile forecasts for the OECD CPI/IPI panels.
-#
-# Not part of run_forecasts.py: gasmodel is R-only, so this runs separately
-# and writes results/gas_<indicator>_forecasts.csv in the same layout as the
-# Python models (country, origin, quantile columns, horizon, actual) - one
-# file per indicator listed in config.toml's INDICATORS.
-#
-# Rolling-origin backtest, as in models/qar.py: for every origin from
-# FORECAST_START_DATE onward, the model sees only data up to and including
-# that origin and is asked for both FORECAST_HORIZONS (1 and 12 months
-# ahead), stopping once an origin's target postdates the last known actual.
-# The GAS specification (distribution, p, q) is chosen once via BIC on the
-# initial LOOKBACK window and re-fit at every origin - a full grid search per
-# origin would be prohibitively slow for little BIC gain.
-
-# Edit these vectors to choose which indicators and countries to run.
-RUN_INDICATORS <- c("cpi", "ipi")
-RUN_COUNTRIES <- c("DEU", "FRA", "GBR", "USA", "JPN")
-
-library(gasmodel)
+# GAS forecasts - step 1: read settings from config.toml
 library(RcppTOML)
-library(rstudioapi)
 
-source_path <- tryCatch(
-  {
-    path <- rstudioapi::getSourceEditorContext()$path
-    if (is.null(path)) "" else path
-  },
-  error = function(e) ""
-)
-if (!nzchar(source_path)) {
-  file_arg <- grep("^--file=", commandArgs(), value = TRUE)
-  if (length(file_arg) == 0) {
-    stop("Could not determine the location of gas.R")
-  }
-  source_path <- sub("^--file=", "", file_arg[[1]])
-}
+# Set this to the project root (the folder containing config.toml)
+project_root <- "C:/Users/juliu/Documents/Forschung/JJ"
 
-project_root <- normalizePath(dirname(source_path), mustWork = TRUE)
-project_root <- normalizePath(file.path(project_root, ".."), mustWork = TRUE)
-config_path <- file.path(project_root, "config.toml")
+config <- parseTOML(file.path(project_root, "config.toml"))
 
-resolve_project_path <- function(path) {
-  path <- as.character(path)
-  if (grepl("^(?:[A-Za-z]:[\\\\/]|/|\\\\\\\\)", path, perl = TRUE)) {
-    return(normalizePath(path, mustWork = FALSE))
-  }
-  file.path(project_root, path)
-}
+countries           <- config$COUNTRIES
+indicators          <- config$INDICATORS
+lookback            <- config$LOOKBACK
+n_samples           <- config$N_SAMPLES
+horizons            <- config$FORECAST_HORIZONS
+quantiles           <- config$QUANTILES
+forecast_start_date <- as.Date(config$FORECAST_START_DATE)
+results_path        <- file.path(project_root, config$RESULTS_PATH)
+data_paths          <- lapply(config$DATA_PATHS, function(p) file.path(project_root, p))
 
-config <- parseTOML(config_path)
 
-unknown_indicators <- setdiff(RUN_INDICATORS, config$INDICATORS)
-unknown_countries <- setdiff(RUN_COUNTRIES, config$COUNTRIES)
-if (length(unknown_indicators) > 0) {
-  stop(sprintf("Unknown indicator(s): %s", paste(unknown_indicators, collapse = ", ")))
-}
-if (length(unknown_countries) > 0) {
-  stop(sprintf("Unknown country/countries: %s", paste(unknown_countries, collapse = ", ")))
-}
+# GAS step 2: AIC model selection per indicator x country (no forecasting)
+library(gasmodel)
 
-results_path <- resolve_project_path(config$RESULTS_PATH)
-dir.create(results_path, showWarnings = FALSE, recursive = TRUE)
+distributions <- c("norm", "t")
+orders        <- 1:2  # score order p and autoregressive order q
 
-forecast_date <- as.Date(config$FORECAST_START_DATE)
-horizons <- config$FORECAST_HORIZONS
-quantiles <- config$QUANTILES
-quantile_cols <- paste0("q", quantiles)
+aic_table <- NULL
+n_fits <- length(indicators) * length(countries) * length(distributions) * (length(orders)^2 - 1)
+done   <- 0
+for (indicator in indicators) {
 
-# GAS specifications tried for the initial fit; the lowest-BIC one is reused
-# for every origin. Kept deliberately small - each combination needs a full
-# simulation-based forecast, and the panels are short monthly series.
-DISTRIBUTIONS <- c("normal", "t")
-ORDERS <- 0:2
+  panel <- read.csv(data_paths[[indicator]], check.names = FALSE)
+  panel$TIME_PERIOD <- as.Date(panel$TIME_PERIOD)
 
-#' Add `n` months to a Date, respecting month-end rollover.
-add_months <- function(date, n) seq(date, by = "month", length.out = n + 1)[n + 1]
+  for (country in countries) {
 
-#' Fit every (distribution, p, q) combination on `y`, return the lowest-BIC fit
-#' (or NULL if none converged).
-select_gas_spec <- function(y) {
-  candidates <- list()
+    # Selection uses only data before the first forecast origin
+    y <- panel[[country]][panel$TIME_PERIOD < forecast_start_date]
+    y <- y[!is.na(y)]
 
-  for (distr in DISTRIBUTIONS) {
-    for (p in ORDERS) {
-      for (q in ORDERS) {
-        fit <- tryCatch(
-          gas(y = y, distr = distr, param = "meanvar", scaling = "unit",
-              regress = "joint", p = p, q = q),
-          error = function(e) NULL
-        )
-        if (!is.null(fit)) {
-          candidates[[length(candidates) + 1]] <- list(
-            distribution = distr, p = p, q = q, bic = as.numeric(fit$fit$bic)
+    for (distr in distributions) {
+      for (p in orders) {
+        for (q in orders) {
+          if (p == 2 && q == 2) next   # excluded specification
+
+          fit <- tryCatch(
+            gas(y = y, distr = distr, p = p, q = q),
+            error = function(e) NULL
           )
+
+          aic_table <- rbind(aic_table, data.frame(
+            indicator    = indicator,
+            country      = country,
+            distribution = distr,
+            p            = p,
+            q            = q,
+            aic          = if (is.null(fit)) NA_real_ else as.numeric(fit$fit$aic),
+            stringsAsFactors = FALSE
+          ))
+          done <- done + 1
+          cat(sprintf("\rAIC fits: %d/%d", done, n_fits))
+          if (done == n_fits) cat("\n")
         }
       }
     }
   }
-
-  if (length(candidates) == 0) return(NULL)
-  candidates[[which.min(sapply(candidates, `[[`, "bic"))]]
 }
 
-#' Fit `spec` on `window` and simulate `max(horizons)` steps ahead, returning
-#' one output row per horizon with mean, quantile columns and the realised
-#' value at that target date.
-forecast_rows <- function(spec, window, origin, country, full_series, last_date) {
+# Best specification (lowest AIC) for each time series
+key  <- paste(aic_table$indicator, aic_table$country)
+best <- do.call(rbind, lapply(split(aic_table, key), function(d) {
+  d[which.min(d$aic), ]
+}))
+rownames(best) <- NULL
 
-  fit <- tryCatch(
-    gas(y = window, distr = spec$distribution, param = "meanvar",
-        scaling = "unit", regress = "joint", p = spec$p, q = spec$q),
-    error = function(e) NULL
-  )
-  if (is.null(fit)) return(NULL)
+# Full ranking per series, then the winners
+aic_table <- aic_table[order(aic_table$indicator, aic_table$country, aic_table$aic), ]
+print(aic_table, row.names = FALSE)
+cat("\nBest specification per series (lowest AIC):\n")
+print(best, row.names = FALSE)
 
-  sim <- gas_forecast(
-    gas_object = fit,
-    method = "simulated_paths",
-    t_ahead = max(horizons),
-    rep_ahead = config$N_SAMPLES,
-    quant = quantiles
-  )
 
-  rows <- lapply(horizons, function(h) {
+# GAS step 3: rolling-origin forecasts with the best specification per series
+set.seed(1)
+dir.create(results_path, showWarnings = FALSE, recursive = TRUE)
 
-    target_date <- add_months(origin, h)
-    if (target_date > last_date) return(NULL)  # ran out of actuals to compare against
+quantile_cols <- paste0("q", quantiles)
+max_h <- max(horizons)
 
-    quant_h <- sim$forecast$y_ahead_quant
-    # Array shape depends on rep_ahead/quant settings; normalise to a plain
-    # vector of quantiles for horizon h.
-    if (length(dim(quant_h)) == 3) {
-      quant_h <- quant_h[h, 1, ]
-    } else if (nrow(quant_h) == length(quantiles)) {
-      quant_h <- quant_h[, h]
-    } else {
-      quant_h <- quant_h[h, ]
-    }
-
-    # `[` (not `[[`) on a named vector returns NA_real_, rather than erroring,
-    # when the target date is not among the realised observations.
-    actual <- unname(full_series[as.character(target_date)])
-
-    row <- data.frame(
-      country = country,
-      origin = origin,
-      horizon = h,
-      mean = as.numeric(sim$forecast$y_ahead_mean)[h]
-    )
-    row[quantile_cols] <- as.list(quant_h)
-    row$actual <- actual
-    row
-  })
-
-  do.call(rbind, rows)
+# Quantiles of horizon h from gas_forecast's y_ahead_quant, whatever its layout
+horizon_quantiles <- function(q_array, h) {
+  d <- dim(q_array)
+  if (length(d) == 3) q_array <- q_array[, 1, ]   # drop the series dimension
+  if (nrow(q_array) == max_h) as.numeric(q_array[h, ]) else as.numeric(q_array[, h])
 }
 
-for (dataset in RUN_INDICATORS) {
+for (indicator in indicators) {
 
-  configured_path <- config$DATA_PATHS[[dataset]]
-  if (is.null(configured_path)) next  # no data configured for this indicator, skip
-  path <- resolve_project_path(configured_path)
+  panel <- read.csv(data_paths[[indicator]], check.names = FALSE)
+  panel$TIME_PERIOD <- as.Date(panel$TIME_PERIOD)
 
-  dat <- read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)
-  dat$TIME_PERIOD <- as.Date(dat$TIME_PERIOD)
+  country_results <- list()
 
-  results <- list()
+  for (country in countries) {
 
-  for (country in RUN_COUNTRIES) {
+    spec <- best[best$indicator == indicator & best$country == country, ]
+    if (nrow(spec) == 0 || is.na(spec$aic)) next
 
-    series <- dat[!is.na(dat[[country]]), c("TIME_PERIOD", country)]
-    names(series) <- c("date", "value")
-    if (nrow(series) == 0) next
+    keep   <- !is.na(panel[[country]])
+    dates  <- panel$TIME_PERIOD[keep]
+    values <- panel[[country]][keep]
+    n      <- length(values)
 
-    last_date <- max(series$date)
+    origins <- which(dates >= forecast_start_date)
 
-    # Realised values keyed by date string, used to fill `actual` for target
-    # dates that have since been observed.
-    full_series <- setNames(series$value, as.character(series$date))
+    # One fit and simulation per origin, on the expanding history up to it
+    forecasts <- list()
+    for (i in origins) {
+      if (i + min(horizons) > n) next
 
-    init_window <- tail(series$value[series$date < forecast_date], config$LOOKBACK)
-    spec <- select_gas_spec(init_window)
-    if (is.null(spec)) {
-      warning(sprintf("No GAS model estimated for %s - %s", dataset, country))
-      next
+      fit <- tryCatch(
+        gas(y = values[1:i], distr = spec$distribution, p = spec$p, q = spec$q),
+        error = function(e) NULL
+      )
+      if (is.null(fit)) {
+        warning(sprintf("%s %s: fit failed at %s", indicator, country, dates[i]))
+        next
+      }
+
+      sim <- gas_forecast(
+        gas_object = fit,
+        method     = "simulated_paths",
+        t_ahead    = max_h,
+        rep_ahead  = n_samples,
+        quant      = quantiles
+      )
+      forecasts[[as.character(i)]] <- sim$forecast$y_ahead_quant
     }
 
-    cat(sprintf("%s - %s: selected %s GAS(%d,%d), BIC = %.2f\n",
-                dataset, country, spec$distribution, spec$p, spec$q, spec$bic))
+    # Same layout as the Python models: all origins for one horizon, then the next
+    rows <- list()
+    for (h in horizons) {
+      for (i in origins) {
+        key_i <- as.character(i)
+        if (i + h > n || is.null(forecasts[[key_i]])) next
 
-    origins <- series$date[series$date >= forecast_date & series$date <= last_date]
-
-    for (origin in origins) {
-      origin <- as.Date(origin, origin = "1970-01-01")
-
-      if (add_months(origin, min(horizons)) > last_date) break  # no origin from here on has an actual to compare against
-
-      window <- tail(series$value[series$date <= origin], config$LOOKBACK)
-      rows <- forecast_rows(spec, window, origin, country, full_series, last_date)
-      if (!is.null(rows)) results[[length(results) + 1]] <- rows
+        row <- data.frame(country = country, origin = dates[i])
+        row[quantile_cols] <- as.list(horizon_quantiles(forecasts[[key_i]], h))
+        row$horizon <- h
+        row$actual  <- values[i + h]
+        rows[[length(rows) + 1]] <- row
+      }
     }
+    if (length(rows) > 0) country_results[[country]] <- do.call(rbind, rows)
+    cat(sprintf("%s %s done\n", indicator, country))
   }
 
-  out <- do.call(rbind, results)
-  out_path <- file.path(results_path, sprintf("gas_%s_forecasts.csv", dataset))
+  out <- do.call(rbind, country_results)
+  out_path <- file.path(results_path, sprintf("gas_%s_forecasts.csv", indicator))
   write.csv(out, out_path, row.names = FALSE)
-  cat(sprintf("saved %s\n", out_path))
+  cat("saved", out_path, "\n")
 }
-
