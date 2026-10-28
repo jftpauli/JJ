@@ -29,6 +29,7 @@ setuptools==84.0.0
 six==1.17.0
 statsmodels==0.15.0
 sympy==1.14.0
+tfc-t0[torch]==0.6.0
 timesfm==3.0.1
 timestral @ git+https://github.com/mistralai/timestral@a534bdbd244d64f3d9d743f46c7bf6fc330ed4ff
 tomli==2.4.1

@@ -19,6 +19,7 @@ AVAILABLE_MODELS = {
     "timesfm": lambda: __import__("models.timesfm", fromlist=["timesfm"]).timesfm,
     "moirai": lambda: __import__("models.moirai", fromlist=["moirai"]).moirai,
     "timestral": lambda: __import__("models.timestral", fromlist=["timestral"]).timestral,
+    "t0gamma": lambda: __import__("models.t0gamma", fromlist=["t0gamma"]).t0gamma,
 }
 
 
