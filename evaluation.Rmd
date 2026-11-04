@@ -36,6 +36,7 @@ cpi <- read.csv(DATA_PATHS$cpi)
 ipi <- read.csv(DATA_PATHS$ipi)
 ```
 
+
 # Evaluation setup
 
 Select multiple indicators here when required. Each indicator is evaluated
@@ -52,9 +53,9 @@ library(scoringRules)
 SELECTED_COUNTRIES <- COUNTRIES
 SELECTED_HORIZONS <- c(1, 12)
 SELECTED_INDICATORS <- c("cpi", "ipi")
-SELECTED_MODELS <- c("chronos2", "qar", "sundial", "timesfm") #"gas",
-# SELECTED_MODELS <- c("historical")
+SELECTED_MODELS <- c("chronos2", "qar", "sundial", "timestral", "t0gamma") #"gas",
 PLOT_COUNTRY <- SELECTED_COUNTRIES[1]
+MURPHY_LIMITS <- list(ipi = c(-50, 50))   # NULL / absent = full range
 
 INDICATOR_DATA <- list(cpi = cpi, ipi = ipi)
 PLOT_DIR <- "plots"
@@ -66,6 +67,7 @@ source(file.path(PLOT_DIR, "murphy.R"))
 
 stopifnot(all(SELECTED_INDICATORS %in% names(INDICATOR_DATA)))
 ```
+
 
 # Evaluation by indicator
 
@@ -169,7 +171,8 @@ evaluate_indicator <- function(indicator, horizon) {
     historical = historical,
     scores_summary = scores_summary,
     coverage = coverage,
-    murphy = murphy_scores(forecasts)
+    murphy         = murphy_scores(forecasts, limits = MURPHY_LIMITS[[indicator]]),
+    murphy_overall = murphy_scores_overall(forecasts, limits = MURPHY_LIMITS[[indicator]])
   )
 }
 
@@ -196,6 +199,7 @@ for (i in seq_len(nrow(evaluation_keys))) {
   historical <- result$historical
   scores_summary <- result$scores_summary
   coverage <- result$coverage
+  lim <- MURPHY_LIMITS[[indicator]]
 
   cat("\n## ", toupper(indicator), " - horizon ", horizon, "\n\n", sep = "")
   cat("All metrics below use only ", toupper(indicator),
@@ -215,8 +219,6 @@ for (i in seq_len(nrow(evaluation_keys))) {
   print(plot_coverage(
     coverage, indicator, horizon, SELECTED_COUNTRIES
   ))
-  print(plot_murphy(
-    result$murphy, indicator, horizon, SELECTED_COUNTRIES
-  ))
+  print(plot_murphy(result$murphy, indicator, horizon, SELECTED_COUNTRIES, limits = lim))
+  print(plot_murphy_overall(result$murphy_overall, indicator, horizon, SELECTED_COUNTRIES, limits = lim))
 }
-```
