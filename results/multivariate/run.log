@@ -1,0 +1,398 @@
+[1/4] running qar+fci (/home/juliusdb01/documents/GSEFM/JJ/environments/.venv-benchmark/bin/python)
+qar+fci/cpi [######------------------------] 1/5/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+qar+fci/cpi [############------------------] 2/5/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+qar+fci/cpi [##################------------] 3/5/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+qar+fci/cpi [########################------] 4/5/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+qar+fci/cpi [##############################] 5/5
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/qar_cpi_forecasts.csv
+qar+fci/ipi [######------------------------] 1/5/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+qar+fci/ipi [############------------------] 2/5/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+qar+fci/ipi [##################------------] 3/5/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+qar+fci/ipi [########################------] 4/5/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+qar+fci/ipi [##############################] 5/5
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:151: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(data["target"], X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/multivariate.py:161: IterationLimitWarning: Maximum number of iterations (5000) reached.
+  sm.QuantReg(data["target"], data.drop(columns="target")).fit(q=tau, max_iter=5000)
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+/home/juliusdb01/documents/GSEFM/JJ/models/qar.py:42: IterationLimitWarning: Maximum number of iterations (10000) reached.
+  resid = sm.QuantReg(target, X).fit(q=0.5, max_iter=10000).resid
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/qar_ipi_forecasts.csv
+[1/4] qar: ok
+[2/4] running chronos2+fci (/home/juliusdb01/documents/GSEFM/JJ/environments/.venv-chronos/bin/python)
+chronos2+fci/cpi [######------------------------] 1/5Loading weights:   0%|          | 0/170 [00:00<?, ?it/s]Loading weights:  91%|█████████ | 154/170 [00:00<00:00, 1537.83it/s]Loading weights: 100%|██████████| 170/170 [00:00<00:00, 1645.31it/s]
+chronos2+fci/cpi [############------------------] 2/5chronos2+fci/cpi [##################------------] 3/5chronos2+fci/cpi [########################------] 4/5chronos2+fci/cpi [##############################] 5/5
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/chronos2_cpi_forecasts.csv
+chronos2+fci/ipi [######------------------------] 1/5chronos2+fci/ipi [############------------------] 2/5chronos2+fci/ipi [##################------------] 3/5chronos2+fci/ipi [########################------] 4/5chronos2+fci/ipi [##############################] 5/5
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/chronos2_ipi_forecasts.csv
+[2/4] chronos2: ok
+[3/4] running t0gamma+fci (/home/juliusdb01/documents/GSEFM/JJ/environments/.venv-timesfm/bin/python)
+t0gamma+fci/cpi [######------------------------] 1/5t0gamma+fci/cpi [############------------------] 2/5t0gamma+fci/cpi [##################------------] 3/5t0gamma+fci/cpi [########################------] 4/5t0gamma+fci/cpi [##############################] 5/5
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/t0gamma_cpi_forecasts.csv
+t0gamma+fci/ipi [######------------------------] 1/5t0gamma+fci/ipi [############------------------] 2/5t0gamma+fci/ipi [##################------------] 3/5t0gamma+fci/ipi [########################------] 4/5t0gamma+fci/ipi [##############################] 5/5
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/t0gamma_ipi_forecasts.csv
+[3/4] t0gamma: ok
+[4/4] running timestral+fci (/home/juliusdb01/documents/GSEFM/JJ/environments/.venv-timesfm/bin/python)
+timestral+fci/cpi [######------------------------] 1/5Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files: 100%|██████████| 2/2 [00:00<00:00, 925.08it/s]
+/home/juliusdb01/documents/GSEFM/JJ/environments/.venv-timesfm/lib/python3.13/site-packages/timestral/forecaster.py:234: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  x = torch.as_tensor(context, dtype=torch.float32, device=self.device)
+timestral+fci/cpi [############------------------] 2/5timestral+fci/cpi [##################------------] 3/5timestral+fci/cpi [########################------] 4/5timestral+fci/cpi [##############################] 5/5
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/timestral_cpi_forecasts.csv
+timestral+fci/ipi [######------------------------] 1/5timestral+fci/ipi [############------------------] 2/5timestral+fci/ipi [##################------------] 3/5timestral+fci/ipi [########################------] 4/5timestral+fci/ipi [##############################] 5/5
+saved /home/juliusdb01/documents/GSEFM/JJ/results/multivariate/timestral_ipi_forecasts.csv
+[4/4] timestral: ok
+
+summary:
+  qar: ok
+  chronos2: ok
+  t0gamma: ok
+  timestral: ok

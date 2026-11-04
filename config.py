@@ -25,5 +25,6 @@ FORECAST_START_DATE = _cfg["FORECAST_START_DATE"]
 
 DATA_PATHS = {k: ROOT / v for k, v in _cfg["DATA_PATHS"].items()}
 RESULTS_PATH = ROOT / _cfg["RESULTS_PATH"]
+FCI_COLUMN = _cfg.get("FCI_COLUMN", "tvp_fci")
 
 BISTRO_ROOT = Path(_cfg["BISTRO_ROOT"])

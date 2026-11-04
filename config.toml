@@ -10,6 +10,10 @@ INDICATORS = ["cpi", "ipi"]
 
 RESULTS_PATH = "results"
 
+# Financial conditions index used as covariate by run_multivariate.py
+# (column of data/FCIs_ABV_IMFER_v4-FCIs.csv: ew_fci, pca_fci or tvp_fci)
+FCI_COLUMN = "tvp_fci"
+
 # Path to the local Bistro installation
 BISTRO_ROOT = "C:/Users/juliu/Documents/Forschung/third_party/bistro"
 
@@ -28,3 +32,4 @@ t0gamma = "timesfm"
 [DATA_PATHS]
 cpi = "data/OECD_cpi_yoy_latest_monthly_panel.csv"
 ipi = "data/OECD_ipi_yoy_latest_monthly_panel.csv"
+fci = "data/FCIs_ABV_IMFER_v4-FCIs.csv"
